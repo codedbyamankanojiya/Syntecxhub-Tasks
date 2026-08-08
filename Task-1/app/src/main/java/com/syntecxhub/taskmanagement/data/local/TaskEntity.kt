@@ -12,5 +12,6 @@ data class TaskEntity(
     val priority: Priority,
     val dueDate: Long,
     val isCompleted: Boolean,
+    val reminderEnabled: Boolean,
     val createdAt: Long
 )

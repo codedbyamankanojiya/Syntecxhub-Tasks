@@ -14,6 +14,7 @@ fun TaskEntity.toDomain(): Task {
         priority = priority,
         dueDate = LocalDateTime.ofInstant(Instant.ofEpochMilli(dueDate), ZoneId.systemDefault()),
         isCompleted = isCompleted,
+        reminderEnabled = reminderEnabled,
         createdAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(createdAt), ZoneId.systemDefault())
     )
 }
@@ -26,6 +27,7 @@ fun Task.toEntity(): TaskEntity {
         priority = priority,
         dueDate = dueDate.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
         isCompleted = isCompleted,
+        reminderEnabled = reminderEnabled,
         createdAt = createdAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
     )
 }
