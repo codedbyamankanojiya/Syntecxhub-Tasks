@@ -16,13 +16,17 @@ class GetTasksUseCase(
     ): Flow<List<Task>> {
         return repository.getTasks().map { tasks ->
             tasks.filter { task ->
-                val matchesQuery = task.title.contains(query, ignoreCase = true) || 
+                val matchesQuery = task.title.contains(query, ignoreCase = true) ||
                                  task.description.contains(query, ignoreCase = true)
                 val matchesPriority = priority == null || task.priority == priority
                 val matchesCompletion = showCompleted == null || task.isCompleted == showCompleted
-                
+
                 matchesQuery && matchesPriority && matchesCompletion
-            }.sortedByDescending { it.createdAt }
+            }.sortedWith(
+                compareBy<Task> { it.isCompleted }
+                    .thenByDescending { it.priority.ordinal }
+                    .thenByDescending { it.createdAt }
+            )
         }
     }
 }

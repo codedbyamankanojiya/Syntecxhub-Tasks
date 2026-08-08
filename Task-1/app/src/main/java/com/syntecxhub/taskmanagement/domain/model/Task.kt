@@ -9,5 +9,6 @@ data class Task(
     val priority: Priority,
     val dueDate: LocalDateTime,
     val isCompleted: Boolean = false,
+    val reminderEnabled: Boolean = false,
     val createdAt: LocalDateTime = LocalDateTime.now()
 )

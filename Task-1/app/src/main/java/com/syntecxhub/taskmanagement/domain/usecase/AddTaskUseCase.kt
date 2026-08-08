@@ -6,10 +6,10 @@ import com.syntecxhub.taskmanagement.domain.repository.TaskRepository
 class AddTaskUseCase(
     private val repository: TaskRepository
 ) {
-    suspend operator fun invoke(task: Task) {
+    suspend operator fun invoke(task: Task): Long {
         if (task.title.isBlank()) {
             throw IllegalArgumentException("Task title cannot be empty.")
         }
-        repository.insertTask(task)
+        return repository.insertTask(task)
     }
 }
