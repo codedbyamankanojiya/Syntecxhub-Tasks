@@ -1,0 +1,104 @@
+# ====================================================================
+# Android & Gradle Build Artifacts
+# ====================================================================
+bin/
+gen/
+out/
+build/
+app/build/
+*/build/
+.gradle/
+app/.gradle/
+*/.gradle/
+
+# Built application packages & binaries
+*.apk
+*.aar
+*.ap_
+*.aab
+*.dex
+*.class
+
+# C/C++ Native build folders
+.cxx/
+.externalNativeBuild/
+
+# ====================================================================
+# Confidential, Secrets & Environment Configurations
+# ====================================================================
+# Local SDK and machine configurations
+local.properties
+app/local.properties
+*/local.properties
+
+# Environment variables & secrets
+.env
+.env.*
+*.env
+secrets.properties
+app/secrets.properties
+private.properties
+secure.properties
+jwt.json
+
+# API keys, tokens & credentials
+google-services.json
+credentials.json
+service-account*.json
+client_secrets.json
+auth_tokens.json
+*.pem
+*.key
+*.p12
+
+# Keystores & Signing configs
+*.jks
+*.keystore
+*.cer
+*.crt
+signing.properties
+keystore.properties
+
+# ====================================================================
+# Android Studio / IntelliJ IDEA / VS Code Configurations
+# ====================================================================
+.idea/
+app/.idea/
+*/.idea/
+*.iml
+*.iws
+*.ipr
+.caches/
+.import/
+captures/
+.navigation/
+workspace.xml
+tasks.xml
+usage.statistics.xml
+shelf/
+
+# VS Code & other editors
+.vscode/
+*.swp
+*.swo
+*~
+*.bak
+
+# ====================================================================
+# OS & System Generated Files
+# ====================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ====================================================================
+# Logs & Diagnostic Dumps
+# ====================================================================
+*.log
+hs_err_pid*
+replay_pid*
