@@ -1,9 +1,8 @@
 # ====================================================================
-# Android & Gradle Build Artifacts
+# Task-2: WGM Quiz — Android Project .gitignore
 # ====================================================================
-bin/
-gen/
-out/
+
+# ── Gradle & Android Build Outputs ───────────────────────────────────
 build/
 app/build/
 */build/
@@ -11,27 +10,34 @@ app/build/
 app/.gradle/
 */.gradle/
 
-# Built application packages & binaries
+# AGP intermediate directories
+app/src/main/generated/
+.cxx/
+.externalNativeBuild/
+bin/
+gen/
+out/
+
+# KSP (Kotlin Symbol Processing) outputs — Room DAOs are generated here
+**/build/generated/ksp/
+
+# Room Database Schema exports — auto-generated, not tracked
+app/schemas/
+**/schemas/
+
+# ── Compiled & Packaged Artefacts ─────────────────────────────────────
 *.apk
+*.aab
 *.aar
 *.ap_
-*.aab
 *.dex
 *.class
 
-# C/C++ Native build folders
-.cxx/
-.externalNativeBuild/
-
-# ====================================================================
-# Confidential, Secrets & Environment Configurations
-# ====================================================================
-# Local SDK and machine configurations
+# ── Confidential, Secrets & Environment ──────────────────────────────
 local.properties
 app/local.properties
 */local.properties
 
-# Environment variables & secrets
 .env
 .env.*
 *.env
@@ -39,54 +45,45 @@ secrets.properties
 app/secrets.properties
 private.properties
 secure.properties
-jwt.json
 
-# API keys, tokens & credentials
+# API keys & service accounts
 google-services.json
 credentials.json
 service-account*.json
 client_secrets.json
 auth_tokens.json
-*.pem
-*.key
-*.p12
+jwt.json
 
-# Keystores & Signing configs
+# Signing keystores & configs (NEVER commit these)
 *.jks
 *.keystore
+*.p12
+*.pem
+*.key
 *.cer
 *.crt
 signing.properties
 keystore.properties
+release.properties
 
-# ====================================================================
-# Android Studio / IntelliJ IDEA / VS Code Configurations
-# ====================================================================
+# ── Android Studio / IntelliJ IDEA ───────────────────────────────────
 .idea/
 app/.idea/
 */.idea/
 *.iml
 *.iws
 *.ipr
-.caches/
-.import/
 captures/
 .navigation/
-workspace.xml
-tasks.xml
-usage.statistics.xml
-shelf/
 
-# VS Code & other editors
+# ── VS Code & Other Editors ───────────────────────────────────────────
 .vscode/
 *.swp
 *.swo
 *~
 *.bak
 
-# ====================================================================
-# OS & System Generated Files
-# ====================================================================
+# ── OS & System Generated Files ───────────────────────────────────────
 .DS_Store
 .DS_Store?
 ._*
@@ -96,9 +93,15 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# ====================================================================
-# Logs & Diagnostic Dumps
-# ====================================================================
+# ── Logs & Crash Dumps ────────────────────────────────────────────────
 *.log
 hs_err_pid*
 replay_pid*
+
+# ── Kotlin & Gradle Caches ────────────────────────────────────────────
+.kotlin/
+kotlin-js-store/
+
+# Gradle wrapper verification files (generated per machine)
+gradle/wrapper/gradle-wrapper.jar
+# Note: gradle-wrapper.properties IS tracked (defines Gradle version)

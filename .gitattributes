@@ -1,2 +1,83 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# ====================================================================
+# Syntecxhub Tasks — .gitattributes
+# Ensures consistent line endings and binary handling across platforms
+# ====================================================================
+
+# ── Default: normalise all text files to LF on commit ─────────────────
+* text=auto eol=lf
+
+# ── Source Code (force LF) ────────────────────────────────────────────
+*.kt        text eol=lf
+*.kts       text eol=lf
+*.java      text eol=lf
+*.xml       text eol=lf
+*.json      text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.properties text eol=lf
+*.pro       text eol=lf
+*.gradle    text eol=lf
+
+# ── Documentation & Config ────────────────────────────────────────────
+*.md        text eol=lf
+*.txt       text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+*.toml      text eol=lf
+*.csv       text eol=lf
+
+# ── Shell Scripts (LF mandatory — CRLF breaks bash/sh) ───────────────
+gradlew     text eol=lf
+*.sh        text eol=lf
+
+# ── Windows Batch Scripts (CRLF required on Windows) ─────────────────
+gradlew.bat text eol=crlf
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# ── Binary Assets — never diff or merge ───────────────────────────────
+
+# Android packages & binaries
+*.apk   binary
+*.aab   binary
+*.aar   binary
+*.dex   binary
+*.class binary
+*.jar   binary
+
+# Signing & keystores
+*.jks       binary
+*.keystore  binary
+*.p12       binary
+*.cer       binary
+*.crt       binary
+*.pem       binary
+
+# Images
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.svg   binary
+*.ico   binary
+*.bmp   binary
+
+# Audio assets (e.g. Question.mp3, Timer.mp3, Right Answer.mp3, etc.)
+*.mp3   binary
+*.wav   binary
+*.ogg   binary
+*.m4a   binary
+*.aac   binary
+*.flac  binary
+
+# Fonts
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
+
+# Archives
+*.zip   binary
+*.gz    binary
+*.tar   binary

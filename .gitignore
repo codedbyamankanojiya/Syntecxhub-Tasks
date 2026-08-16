@@ -1,23 +1,88 @@
-# Build artifacts
+# ====================================================================
+# Syntecxhub Tasks — Root .gitignore
+# Covers: Android / Gradle / Kotlin / IDE / OS / Secrets
+# ====================================================================
+
+# ── Android & Gradle Build Artefacts ─────────────────────────────────
 **/build/
 **/.gradle/
 **/intermediate/
 **/outputs/
+**/generated/
 **/.kotlin/
+**/.cxx/
+**/.externalNativeBuild/
+**/bin/
+**/gen/
+**/out/
 
-# IDE files
+# Compiled/packaged binaries
+*.apk
+*.aab
+*.aar
+*.ap_
+*.dex
+*.class
+
+# Room DB schema exports (generated, not source)
+**/schemas/
+
+# ── Secrets, Credentials & Local Config ──────────────────────────────
+local.properties
+**/local.properties
+.env
+.env.*
+*.env
+secrets.properties
+**/secrets.properties
+private.properties
+secure.properties
+keystore.properties
+signing.properties
+
+# API keys & service accounts
+google-services.json
+credentials.json
+service-account*.json
+client_secrets.json
+auth_tokens.json
+jwt.json
+
+# Signing artefacts
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+*.cer
+*.crt
+
+# ── IDE & Editor Files ────────────────────────────────────────────────
 .idea/
+**/.idea/
 *.iml
 *.ipr
 *.iws
+.vscode/
+.vscode/**
+captures/
+**/captures/
 
-# Local configuration
-local.properties
-capture/
-
-# Log files
-*.log
-
-# OS files
+# ── OS Generated Files ────────────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
+
+# ── Logs & Crash Dumps ────────────────────────────────────────────────
+*.log
+hs_err_pid*
+replay_pid*
+
+# ── Kotlin & AGP Caches ───────────────────────────────────────────────
+.kotlin/
+kotlin-js-store/
