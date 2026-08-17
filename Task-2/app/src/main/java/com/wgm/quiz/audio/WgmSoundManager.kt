@@ -9,18 +9,17 @@ import kotlinx.coroutines.*
 
 /**
  * Centralized audio manager for all game sound effects.
- * Uses MediaPlayer for background loops (Timer) and SoundPool for short SFX.
+ * Uses MediaPlayer for background loops (Timer, Question) and SoundPool for short SFX.
  */
 class WgmSoundManager(private val context: Context) {
 
     enum class WgmSound {
         LOCK,
         TIMER_LOOP,
-        QUESTION_INTRO,
+        QUESTION_BG,
         CORRECT,
         WRONG,
-        TIME_UP,
-        CLICK
+        TIME_UP
     }
 
     private val audioAttributes = AudioAttributes.Builder()
@@ -41,16 +40,23 @@ class WgmSoundManager(private val context: Context) {
     private var correctSoundId: Int = 0
     private var wrongSoundId: Int = 0
     private var timeUpSoundId: Int = 0
-    private var questionIntroSoundId: Int = 0
-    private var clickSoundId: Int = 0
 
-    // MediaPlayer for looping timer sound
+    // Tracking stream IDs to allow stopping specific SoundPool sounds
+    private val activeStreams = mutableMapOf<WgmSound, Int>()
+
+    // MediaPlayer for looping sounds
     private var timerMediaPlayer: MediaPlayer? = null
+    private var questionMediaPlayer: MediaPlayer? = null
+    
     private var isTimerPlaying = false
+    private var isQuestionPlaying = false
+    
     private var isTimerPrepared = false
+    private var isQuestionPrepared = false
+    
     private var isSfxLoaded = false
     private var loadedSamplesCount = 0
-    private val totalSfxToLoad = 6
+    private val totalSfxToLoad = 4
 
     init {
         Log.d("WgmSoundManager", "init: Initializing SoundManager")
@@ -58,13 +64,13 @@ class WgmSoundManager(private val context: Context) {
             withContext(Dispatchers.IO) {
                 preloadSounds()
                 prepareTimerPlayer()
+                prepareQuestionPlayer()
             }
         }
     }
 
     private fun prepareTimerPlayer() {
         try {
-            Log.d("WgmSoundManager", "prepareTimerPlayer: Starting MediaPlayer preparation")
             timerMediaPlayer?.release()
             isTimerPrepared = false
             timerMediaPlayer = MediaPlayer().apply {
@@ -74,16 +80,8 @@ class WgmSoundManager(private val context: Context) {
                 setAudioAttributes(audioAttributes)
                 isLooping = true
                 setOnPreparedListener {
-                    Log.d("WgmSoundManager", "prepareTimerPlayer: MediaPlayer prepared successfully")
                     isTimerPrepared = true
-                    if (isTimerPlaying) {
-                        it.start()
-                    }
-                }
-                setOnErrorListener { _, what, extra ->
-                    Log.e("WgmSoundManager", "MediaPlayer error: $what, $extra")
-                    isTimerPrepared = false
-                    false
+                    if (isTimerPlaying) it.start()
                 }
                 prepareAsync()
             }
@@ -92,41 +90,40 @@ class WgmSoundManager(private val context: Context) {
         }
     }
 
+    private fun prepareQuestionPlayer() {
+        try {
+            questionMediaPlayer?.release()
+            isQuestionPrepared = false
+            questionMediaPlayer = MediaPlayer().apply {
+                val fd = context.assets.openFd("Question.mp3")
+                setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
+                fd.close()
+                setAudioAttributes(audioAttributes)
+                isLooping = true
+                setOnPreparedListener {
+                    isQuestionPrepared = true
+                    if (isQuestionPlaying) it.start()
+                }
+                prepareAsync()
+            }
+        } catch (e: Exception) {
+            Log.e("WgmSoundManager", "Failed to prepare question player", e)
+        }
+    }
+
     private fun preloadSounds() {
         try {
-            Log.d("WgmSoundManager", "preloadSounds: Starting SFX preloading")
             val assetManager = context.assets
             
-            // Load short SFX into SoundPool
-            assetManager.openFd("Lock.mp3").use { fd ->
-                lockSoundId = soundPool.load(fd, 1)
-            }
-            assetManager.openFd("Right Answer.mp3").use { fd ->
-                correctSoundId = soundPool.load(fd, 1)
-            }
-            assetManager.openFd("Wrong Answer.mp3").use { fd ->
-                wrongSoundId = soundPool.load(fd, 1)
-            }
-            assetManager.openFd("Time Up.mp3").use { fd ->
-                timeUpSoundId = soundPool.load(fd, 1)
-            }
-            assetManager.openFd("Question.mp3").use { fd ->
-                questionIntroSoundId = soundPool.load(fd, 1)
-            }
-            assetManager.openFd("Finger .mp3").use { fd ->
-                clickSoundId = soundPool.load(fd, 1)
-            }
+            assetManager.openFd("Lock.mp3").use { fd -> lockSoundId = soundPool.load(fd, 1) }
+            assetManager.openFd("Right Answer.mp3").use { fd -> correctSoundId = soundPool.load(fd, 1) }
+            assetManager.openFd("Wrong Answer.mp3").use { fd -> wrongSoundId = soundPool.load(fd, 1) }
+            assetManager.openFd("Time Up.mp3").use { fd -> timeUpSoundId = soundPool.load(fd, 1) }
 
-            soundPool.setOnLoadCompleteListener { _, sampleId, status ->
-                Log.d("WgmSoundManager", "preloadSounds: Sample $sampleId loaded with status: $status")
+            soundPool.setOnLoadCompleteListener { _, _, status ->
                 if (status == 0) {
                     loadedSamplesCount++
-                    if (loadedSamplesCount >= totalSfxToLoad) {
-                        isSfxLoaded = true
-                        Log.i("WgmSoundManager", "preloadSounds: ALL SFX LOADED SUCCESSFULLY")
-                    }
-                } else {
-                    Log.e("WgmSoundManager", "preloadSounds: Failed to load sample $sampleId, status: $status")
+                    if (loadedSamplesCount >= totalSfxToLoad) isSfxLoaded = true
                 }
             }
         } catch (e: Exception) {
@@ -134,120 +131,109 @@ class WgmSoundManager(private val context: Context) {
         }
     }
 
-    /**
-     * Play a one-shot sound effect.
-     */
     fun play(sound: WgmSound) {
-        Log.d("WgmSoundManager", "play() called for sound: $sound (isSfxLoaded: $isSfxLoaded, isTimerPrepared: $isTimerPrepared)")
-        
+        Log.d("WgmSoundManager", "play: Triggering sound $sound")
         when (sound) {
             WgmSound.LOCK -> {
-                val res = soundPool.play(lockSoundId, 1f, 1f, 1, 0, 1f)
-                Log.d("WgmSoundManager", "Playing LOCK, res: $res")
+                stopSfx(WgmSound.LOCK)
+                activeStreams[sound] = soundPool.play(lockSoundId, 1f, 1f, 1, 0, 1f)
             }
             WgmSound.CORRECT -> {
-                val res = soundPool.play(correctSoundId, 1f, 1f, 1, 0, 1f)
-                Log.d("WgmSoundManager", "Playing CORRECT, res: $res")
+                // Stop LOCK or other result SFX before playing CORRECT
+                stopAllSfx()
+                activeStreams[sound] = soundPool.play(correctSoundId, 1f, 1f, 1, 0, 1f)
             }
             WgmSound.WRONG -> {
-                val res = soundPool.play(wrongSoundId, 1f, 1f, 1, 0, 1f)
-                Log.d("WgmSoundManager", "Playing WRONG, res: $res")
+                // Stop LOCK or other result SFX before playing WRONG
+                stopAllSfx()
+                activeStreams[sound] = soundPool.play(wrongSoundId, 1f, 1f, 1, 0, 1f)
             }
             WgmSound.TIME_UP -> {
-                val res = soundPool.play(timeUpSoundId, 1f, 1f, 1, 0, 1f)
-                Log.d("WgmSoundManager", "Playing TIME_UP, res: $res")
-            }
-            WgmSound.QUESTION_INTRO -> {
-                val res = soundPool.play(questionIntroSoundId, 1f, 1f, 1, 0, 1f)
-                Log.d("WgmSoundManager", "Playing QUESTION_INTRO, res: $res")
-            }
-            WgmSound.CLICK -> {
-                val res = soundPool.play(clickSoundId, 1f, 1f, 1, 0, 1f)
-                Log.d("WgmSoundManager", "Playing CLICK, res: $res")
+                stopAll()
+                activeStreams[sound] = soundPool.play(timeUpSoundId, 1f, 1f, 1, 0, 1f)
             }
             WgmSound.TIMER_LOOP -> startTimerLoop()
+            WgmSound.QUESTION_BG -> playQuestionBg()
         }
     }
 
+    private fun stopSfx(sound: WgmSound) {
+        activeStreams[sound]?.let { streamId ->
+            soundPool.stop(streamId)
+            activeStreams.remove(sound)
+        }
+    }
+
+    private fun stopAllSfx() {
+        Log.d("WgmSoundManager", "stopAllSfx: Stopping all active SFX streams")
+        activeStreams.forEach { (_, streamId) ->
+            soundPool.stop(streamId)
+        }
+        activeStreams.clear()
+        // Force stop all SoundPool streams to ensure robustness
+        soundPool.autoPause()
+    }
+
     /**
-     * Start the timer background loop using the pre-prepared MediaPlayer.
+     * Halts all current audio (both looping MediaPlayers and short SFX).
      */
+    fun stopAll() {
+        Log.d("WgmSoundManager", "stopAll: Halting all audio components")
+        stopTimerLoop()
+        stopQuestionBg()
+        stopAllSfx()
+    }
+
     private fun startTimerLoop() {
+        Log.d("WgmSoundManager", "startTimerLoop: Starting timer music")
         isTimerPlaying = true
-        Log.d("WgmSoundManager", "startTimerLoop: Requested (isTimerPrepared: $isTimerPrepared)")
-        try {
-            if (timerMediaPlayer == null) {
-                Log.w("WgmSoundManager", "startTimerLoop: MediaPlayer is null, preparing...")
-                prepareTimerPlayer()
-            } else if (isTimerPrepared) {
-                timerMediaPlayer?.let {
-                    if (it.isPlaying) it.pause()
-                    it.seekTo(0)
-                    it.setVolume(1.0f, 1.0f)
-                    it.start()
-                    Log.d("WgmSoundManager", "startTimerLoop: MediaPlayer STARTED")
-                }
-            } else {
-                Log.w("WgmSoundManager", "startTimerLoop: MediaPlayer not prepared yet, will start automatically when ready")
-            }
-        } catch (e: Exception) {
-            Log.e("WgmSoundManager", "Error starting timer loop", e)
+        if (isTimerPrepared) {
+            timerMediaPlayer?.seekTo(0)
+            timerMediaPlayer?.start()
         }
     }
 
-    /**
-     * Stop the timer loop without releasing, for quick reuse.
-     */
     fun stopTimerLoop() {
         isTimerPlaying = false
-        try {
-            timerMediaPlayer?.let {
-                if (it.isPlaying) {
-                    it.pause()
-                    it.seekTo(0)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("WgmSoundManager", "Error stopping timer loop", e)
+        timerMediaPlayer?.takeIf { it.isPlaying }?.let {
+            it.pause()
+            it.seekTo(0)
         }
     }
 
-    /**
-     * Pause all audio (call from Activity onPause).
-     */
+    fun playQuestionBg() {
+        Log.d("WgmSoundManager", "playQuestionBg: Starting question background music")
+        isQuestionPlaying = true
+        if (isQuestionPrepared) {
+            questionMediaPlayer?.seekTo(0)
+            questionMediaPlayer?.start()
+        }
+    }
+
+    fun stopQuestionBg() {
+        isQuestionPlaying = false
+        questionMediaPlayer?.takeIf { it.isPlaying }?.let {
+            it.pause()
+            it.seekTo(0)
+        }
+    }
+
     fun onPause() {
-        try {
-            timerMediaPlayer?.let {
-                if (it.isPlaying) it.pause()
-            }
-            soundPool.autoPause()
-        } catch (e: Exception) {
-            Log.e("WgmSoundManager", "Error in onPause", e)
-        }
+        timerMediaPlayer?.takeIf { it.isPlaying }?.pause()
+        questionMediaPlayer?.takeIf { it.isPlaying }?.pause()
+        soundPool.autoPause()
     }
 
-    /**
-     * Resume audio (call from Activity onResume).
-     */
     fun onResume() {
-        try {
-            if (isTimerPlaying && isTimerPrepared) {
-                timerMediaPlayer?.start()
-            }
-            soundPool.autoResume()
-        } catch (e: Exception) {
-            Log.e("WgmSoundManager", "Error in onResume", e)
-        }
+        if (isTimerPlaying && isTimerPrepared) timerMediaPlayer?.start()
+        if (isQuestionPlaying && isQuestionPrepared) questionMediaPlayer?.start()
+        soundPool.autoResume()
     }
 
-    /**
-     * Release all resources (call from Application onTerminate or Activity onDestroy).
-     */
     fun release() {
         serviceScope.cancel()
-        stopTimerLoop()
         timerMediaPlayer?.release()
-        timerMediaPlayer = null
+        questionMediaPlayer?.release()
         soundPool.release()
     }
 }
