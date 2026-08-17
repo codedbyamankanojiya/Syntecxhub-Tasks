@@ -15,7 +15,7 @@ class WgmApplication : Application() {
             this,
             WgmDatabase::class.java,
             "wgm_database"
-        ).fallbackToDestructiveMigration()
+        ).fallbackToDestructiveMigration(dropAllTables = true)
          .build()
     }
 

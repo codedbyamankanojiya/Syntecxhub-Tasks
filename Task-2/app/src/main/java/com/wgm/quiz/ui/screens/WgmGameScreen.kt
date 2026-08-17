@@ -110,7 +110,6 @@ fun WgmGameScreen(viewModel: WgmQuizViewModel) {
                 // Money Ladder toggle
                 IconButton(
                     onClick = { 
-                        viewModel.playClick()
                         viewModel.toggleMoneyLadder() 
                     },
                     modifier = Modifier
@@ -240,7 +239,6 @@ fun WgmGameScreen(viewModel: WgmQuizViewModel) {
                     emoji = "✂️",
                     status = state.lifelines[LifelineType.FIFTY_FIFTY] ?: LifelineStatus.AVAILABLE,
                     onClick = { 
-                        viewModel.playClick()
                         viewModel.useFiftyFifty() 
                     }
                 )
@@ -249,7 +247,6 @@ fun WgmGameScreen(viewModel: WgmQuizViewModel) {
                     emoji = "📊",
                     status = state.lifelines[LifelineType.AUDIENCE_POLL] ?: LifelineStatus.AVAILABLE,
                     onClick = { 
-                        viewModel.playClick()
                         viewModel.useAudiencePoll() 
                     }
                 )
@@ -258,7 +255,6 @@ fun WgmGameScreen(viewModel: WgmQuizViewModel) {
                     emoji = "🔄",
                     status = state.lifelines[LifelineType.FLIP] ?: LifelineStatus.AVAILABLE,
                     onClick = { 
-                        viewModel.playClick()
                         viewModel.useFlip() 
                     }
                 )
@@ -267,7 +263,6 @@ fun WgmGameScreen(viewModel: WgmQuizViewModel) {
                     emoji = "❤️",
                     status = state.lifelines[LifelineType.EXTRA_LIFE] ?: LifelineStatus.AVAILABLE,
                     onClick = { 
-                        viewModel.playClick()
                         /* Handled via VM logic on wrong answer */ 
                     }
                 )
@@ -282,7 +277,6 @@ fun WgmGameScreen(viewModel: WgmQuizViewModel) {
                 data = state.audiencePollData,
                 options = state.currentQuestion?.options ?: listOf("A", "B", "C", "D"),
                 onDismiss = { 
-                    viewModel.playClick()
                     viewModel.dismissAudiencePoll() 
                 }
             )
@@ -292,11 +286,9 @@ fun WgmGameScreen(viewModel: WgmQuizViewModel) {
         if (state.showExtraLifeDialog) {
             WgmExtraLifeDialog(
                 onUseExtraLife = { 
-                    viewModel.playClick()
                     viewModel.useExtraLife() 
                 },
                 onDismiss = { 
-                    viewModel.playClick()
                     viewModel.dismissExtraLife() 
                 }
             )
