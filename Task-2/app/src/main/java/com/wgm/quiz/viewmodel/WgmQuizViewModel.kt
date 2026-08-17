@@ -36,20 +36,15 @@ class WgmQuizViewModel(
 
     private var timerJob: Job? = null
 
-    fun playClick() {
-        soundManager.play(WgmSound.CLICK)
-    }
 
     fun startGameFromHome() {
         Log.d("WgmQuizViewModel", "Starting game from home")
-        playClick()
         startGame()
     }
 
     fun goToHome() {
-        playClick()
         timerJob?.cancel()
-        soundManager.stopTimerLoop()
+        soundManager.stopAll()
         _uiState.update { it.copy(gamePhase = GamePhase.Home) }
     }
 
@@ -71,9 +66,8 @@ class WgmQuizViewModel(
 
     fun restartGame() {
         Log.d("WgmQuizViewModel", "Restarting game - performing deep reset")
-        playClick()
         timerJob?.cancel()
-        soundManager.stopTimerLoop()
+        soundManager.stopAll()
         
         // Explicitly create a clean initial state
         _uiState.value = WgmGameUiState(
@@ -92,6 +86,10 @@ class WgmQuizViewModel(
 
     private suspend fun loadQuestion(level: Int) {
         Log.d("WgmQuizViewModel", "loadQuestion: Fetching question for level $level")
+        
+        // Stop all previous sounds (background, timer, or previous answer SFX)
+        soundManager.stopAll()
+
         val question = repository.getQuestion(level)
         Log.d("WgmQuizViewModel", "loadQuestion: Question found: ${question != null}")
         if (question != null) {
@@ -108,9 +106,9 @@ class WgmQuizViewModel(
                     selectedOptionIndex = -1
                 )
             }
-            // Play question intro sound
-            soundManager.play(WgmSound.QUESTION_INTRO)
-            delay(800) // Brief delay for question intro sound
+            // Play question background music (Question.mp3 loops until timer starts)
+            soundManager.playQuestionBg()
+            delay(3000) // Increased to 3s: allows the player to read the question while hearing thematic music
             startTimer()
         } else {
             _uiState.update { it.copy(isGameOver = true, gamePhase = GamePhase.GameOver) }
@@ -122,11 +120,12 @@ class WgmQuizViewModel(
     private fun startTimer() {
         timerJob?.cancel()
         soundManager.stopTimerLoop()
-        
+        soundManager.stopQuestionBg() // Always stop question music before starting countdown
+
         val totalTime = 30
         _uiState.update { it.copy(secondsLeft = totalTime, isTimerSoundPlaying = true) }
-        
-        // Start timer loop sound exactly when the logical timer starts
+
+        // Start looping timer countdown music
         soundManager.play(WgmSound.TIMER_LOOP)
 
         timerJob = viewModelScope.launch {
@@ -166,9 +165,9 @@ class WgmQuizViewModel(
         val currentPhase = _uiState.value.gamePhase
         if (currentPhase != GamePhase.QuestionActive) return
 
-        playClick()
         timerJob?.cancel()
         soundManager.stopTimerLoop()
+        soundManager.stopQuestionBg()
         _uiState.update { it.copy(isTimerSoundPlaying = false) }
 
         val question = _uiState.value.currentQuestion ?: return
@@ -203,7 +202,7 @@ class WgmQuizViewModel(
                         coinsEarned = state.coinsEarned + coins
                     )
                 }
-                delay(2000)
+                delay(4000) // Increased to 4s: allow CORRECT music to complete
 
                 if (_uiState.value.currentLevel == 16) {
                     // Won Grand Jackpot!
@@ -230,7 +229,7 @@ class WgmQuizViewModel(
                         }
                     )
                 }
-                delay(2000)
+                delay(4000) // Increased to 4s: allow WRONG music to complete
                 handleWrongAnswer()
             }
         }
