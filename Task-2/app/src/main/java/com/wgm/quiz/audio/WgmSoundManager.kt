@@ -17,6 +17,7 @@ class WgmSoundManager(private val context: Context) {
         LOCK,
         TIMER_LOOP,
         QUESTION_BG,
+        HOME_BG,
         CORRECT,
         WRONG,
         TIME_UP
@@ -47,12 +48,15 @@ class WgmSoundManager(private val context: Context) {
     // MediaPlayer for looping sounds
     private var timerMediaPlayer: MediaPlayer? = null
     private var questionMediaPlayer: MediaPlayer? = null
+    private var homeMediaPlayer: MediaPlayer? = null
     
     private var isTimerPlaying = false
     private var isQuestionPlaying = false
+    private var isHomePlaying = false
     
     private var isTimerPrepared = false
     private var isQuestionPrepared = false
+    private var isHomePrepared = false
     
     private var isSfxLoaded = false
     private var loadedSamplesCount = 0
@@ -65,6 +69,7 @@ class WgmSoundManager(private val context: Context) {
                 preloadSounds()
                 prepareTimerPlayer()
                 prepareQuestionPlayer()
+                prepareHomePlayer()
             }
         }
     }
@@ -111,6 +116,27 @@ class WgmSoundManager(private val context: Context) {
         }
     }
 
+    private fun prepareHomePlayer() {
+        try {
+            homeMediaPlayer?.release()
+            isHomePrepared = false
+            homeMediaPlayer = MediaPlayer().apply {
+                val fd = context.assets.openFd("WGM Home.mp3")
+                setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
+                fd.close()
+                setAudioAttributes(audioAttributes)
+                isLooping = true
+                setOnPreparedListener {
+                    isHomePrepared = true
+                    if (isHomePlaying) it.start()
+                }
+                prepareAsync()
+            }
+        } catch (e: Exception) {
+            Log.e("WgmSoundManager", "Failed to prepare home player", e)
+        }
+    }
+
     private fun preloadSounds() {
         try {
             val assetManager = context.assets
@@ -154,6 +180,7 @@ class WgmSoundManager(private val context: Context) {
             }
             WgmSound.TIMER_LOOP -> startTimerLoop()
             WgmSound.QUESTION_BG -> playQuestionBg()
+            WgmSound.HOME_BG -> playHomeBg()
         }
     }
 
@@ -181,6 +208,7 @@ class WgmSoundManager(private val context: Context) {
         Log.d("WgmSoundManager", "stopAll: Halting all audio components")
         stopTimerLoop()
         stopQuestionBg()
+        stopHomeBg()
         stopAllSfx()
     }
 
@@ -220,15 +248,35 @@ class WgmSoundManager(private val context: Context) {
         }
     }
 
+    fun playHomeBg() {
+        Log.d("WgmSoundManager", "playHomeBg: Starting home background music")
+        isHomePlaying = true
+        if (isHomePrepared) {
+            homeMediaPlayer?.seekTo(0)
+            homeMediaPlayer?.start()
+        }
+    }
+
+    fun stopHomeBg() {
+        Log.d("WgmSoundManager", "stopHomeBg: Stopping home background music")
+        isHomePlaying = false
+        homeMediaPlayer?.let {
+            if (it.isPlaying) it.pause()
+            it.seekTo(0)
+        }
+    }
+
     fun onPause() {
         timerMediaPlayer?.takeIf { it.isPlaying }?.pause()
         questionMediaPlayer?.takeIf { it.isPlaying }?.pause()
+        homeMediaPlayer?.takeIf { it.isPlaying }?.pause()
         soundPool.autoPause()
     }
 
     fun onResume() {
         if (isTimerPlaying && isTimerPrepared) timerMediaPlayer?.start()
         if (isQuestionPlaying && isQuestionPrepared) questionMediaPlayer?.start()
+        if (isHomePlaying && isHomePrepared) homeMediaPlayer?.start()
         soundPool.autoResume()
     }
 
@@ -236,6 +284,7 @@ class WgmSoundManager(private val context: Context) {
         serviceScope.cancel()
         timerMediaPlayer?.release()
         questionMediaPlayer?.release()
+        homeMediaPlayer?.release()
         soundPool.release()
     }
 }
