@@ -35,6 +35,7 @@ class WgmQuizViewModel(
     }
 
     private var timerJob: Job? = null
+    private var questionJob: Job? = null
 
 
     fun startGameFromHome() {
@@ -44,6 +45,7 @@ class WgmQuizViewModel(
 
     fun goToHome() {
         timerJob?.cancel()
+        questionJob?.cancel()
         soundManager.stopAll()
         _uiState.update { it.copy(gamePhase = GamePhase.Home) }
     }
@@ -67,6 +69,7 @@ class WgmQuizViewModel(
     fun restartGame() {
         Log.d("WgmQuizViewModel", "Restarting game - performing deep reset")
         timerJob?.cancel()
+        questionJob?.cancel()
         soundManager.stopAll()
         
         // Explicitly create a clean initial state
@@ -84,34 +87,37 @@ class WgmQuizViewModel(
         startGame()
     }
 
-    private suspend fun loadQuestion(level: Int) {
-        Log.d("WgmQuizViewModel", "loadQuestion: Fetching question for level $level")
-        
-        // Stop all previous sounds (background, timer, or previous answer SFX)
-        soundManager.stopAll()
+    private fun loadQuestion(level: Int) {
+        questionJob?.cancel()
+        questionJob = viewModelScope.launch {
+            Log.d("WgmQuizViewModel", "loadQuestion: Fetching question for level $level")
+            
+            // Stop all previous sounds (background, timer, or previous answer SFX)
+            soundManager.stopAll()
 
-        val question = repository.getQuestion(level)
-        Log.d("WgmQuizViewModel", "loadQuestion: Question found: ${question != null}")
-        if (question != null) {
-            _uiState.update {
-                it.copy(
-                    currentQuestion = question,
-                    currentLevel = level,
-                    secondsLeft = 30,
-                    optionStates = List(4) { OptionState.NORMAL },
-                    currentPrize = MONEY_LADDER.getOrNull(level - 1) ?: "MAX",
-                    showAudiencePoll = false,
-                    gamePhase = GamePhase.QuestionActive,
-                    isGameOver = false,
-                    selectedOptionIndex = -1
-                )
+            val question = repository.getQuestion(level)
+            Log.d("WgmQuizViewModel", "loadQuestion: Question found: ${question != null}")
+            if (question != null) {
+                _uiState.update {
+                    it.copy(
+                        currentQuestion = question,
+                        currentLevel = level,
+                        secondsLeft = 30,
+                        optionStates = List(4) { OptionState.NORMAL },
+                        currentPrize = MONEY_LADDER.getOrNull(level - 1) ?: "MAX",
+                        showAudiencePoll = false,
+                        gamePhase = GamePhase.QuestionActive,
+                        isGameOver = false,
+                        selectedOptionIndex = -1
+                    )
+                }
+                // Play question background music (Question.mp3 loops until timer starts)
+                soundManager.playQuestionBg()
+                delay(3000) // Increased to 3s: allows the player to read the question while hearing thematic music
+                startTimer()
+            } else {
+                _uiState.update { it.copy(isGameOver = true, gamePhase = GamePhase.GameOver) }
             }
-            // Play question background music (Question.mp3 loops until timer starts)
-            soundManager.playQuestionBg()
-            delay(3000) // Increased to 3s: allows the player to read the question while hearing thematic music
-            startTimer()
-        } else {
-            _uiState.update { it.copy(isGameOver = true, gamePhase = GamePhase.GameOver) }
         }
     }
 
@@ -166,6 +172,7 @@ class WgmQuizViewModel(
         if (currentPhase != GamePhase.QuestionActive) return
 
         timerJob?.cancel()
+        questionJob?.cancel()
         soundManager.stopTimerLoop()
         soundManager.stopQuestionBg()
         _uiState.update { it.copy(isTimerSoundPlaying = false) }
@@ -247,6 +254,10 @@ class WgmQuizViewModel(
     private fun gameOver() {
         val currentLevel = _uiState.value.currentLevel
         val wonAmount = calculateSafeHavenPrize(currentLevel)
+        
+        soundManager.stopTimerLoop()
+        soundManager.stopQuestionBg()
+
         _uiState.update { it.copy(
             isGameOver = true,
             lastWonAmount = wonAmount,
@@ -385,6 +396,7 @@ class WgmQuizViewModel(
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
+        questionJob?.cancel()
         soundManager.stopTimerLoop()
     }
 }

@@ -194,9 +194,10 @@ class WgmSoundManager(private val context: Context) {
     }
 
     fun stopTimerLoop() {
+        Log.d("WgmSoundManager", "stopTimerLoop: Stopping timer music")
         isTimerPlaying = false
-        timerMediaPlayer?.takeIf { it.isPlaying }?.let {
-            it.pause()
+        timerMediaPlayer?.let {
+            if (it.isPlaying) it.pause()
             it.seekTo(0)
         }
     }
@@ -211,9 +212,10 @@ class WgmSoundManager(private val context: Context) {
     }
 
     fun stopQuestionBg() {
+        Log.d("WgmSoundManager", "stopQuestionBg: Stopping question background music")
         isQuestionPlaying = false
-        questionMediaPlayer?.takeIf { it.isPlaying }?.let {
-            it.pause()
+        questionMediaPlayer?.let {
+            if (it.isPlaying) it.pause()
             it.seekTo(0)
         }
     }
