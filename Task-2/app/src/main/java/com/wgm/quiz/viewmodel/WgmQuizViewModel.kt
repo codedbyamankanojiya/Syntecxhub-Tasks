@@ -32,6 +32,7 @@ class WgmQuizViewModel(
 
     init {
         Log.d("WgmQuizViewModel", "Initializing WgmQuizViewModel with highScore: ${scoreRepository.highScore}, coins: ${scoreRepository.totalCoins}")
+        soundManager.play(WgmSound.HOME_BG)
     }
 
     private var timerJob: Job? = null
@@ -47,6 +48,7 @@ class WgmQuizViewModel(
         timerJob?.cancel()
         questionJob?.cancel()
         soundManager.stopAll()
+        soundManager.play(WgmSound.HOME_BG)
         _uiState.update { it.copy(gamePhase = GamePhase.Home) }
     }
 

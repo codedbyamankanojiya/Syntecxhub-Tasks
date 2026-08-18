@@ -291,6 +291,15 @@ fun WgmHomeScreen(viewModel: WgmQuizViewModel) {
             }
 
             Spacer(modifier = Modifier.weight(1f))
+
+            // Developer Credit
+            Text(
+                text = "Developed By Aman Kanojiya",
+                color = WgmGlowGold.copy(alpha = 0.6f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
         }
     }
 }
