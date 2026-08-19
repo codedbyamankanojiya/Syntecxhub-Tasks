@@ -9,7 +9,7 @@ This repository documents and showcases the weekly production-grade Android deve
 | # | Task & Project | Key Highlights | Core Architecture & Tech |
 |---|---|---|---|
 | **01** | [**Task 1: SyncTask**](./Task-1) <br> *(Advanced Task Management)* | • WorkManager Reminder Notifications <br>• Dual-direction Swipe Actions & Haptics <br>• Canvas Stats Progress Ring & Analytics <br>• Particle Celebration Burst Effects | **Clean Architecture + MVVM** <br>Jetpack Compose, Dagger Hilt, Room DB, WorkManager, Coroutines & Flow |
-| **02** | [**Task 2: WGM Quiz**](./Task-2) <br> *(Who's Gonna Be Millionaire)* | • 16-Tier Dynamic Money Ladder (₹1K – ₹7Cr) <br>• Complete 4-Lifeline Engine (50:50, Poll, Flip, Life) <br>• SoundPool / MediaPlayer Audio & Synth Engine <br>• Custom Hexagonal Geometry & Glowing UI <br>• Animated Splash Screen with Logo Reveal | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose, Room DB, StateFlow, SoundPool / AudioTrack, SharedPreferences |
+| **02** | [**Task 2: WGM Quiz**](./Task-2) <br> *(Who's Gonna Be Millionaire)* | • 15-Tier Dynamic Money Ladder (₹1K – ₹7Cr) <br>• Complete 4-Lifeline Engine (50:50, Poll, Flip, Life) <br>• Triple MediaPlayer + SoundPool Audio Architecture <br>• Custom Hexagonal Geometry & Glowing UI <br>• Animated Splash Screen & Iconic Home Theme | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose, Room DB v2, StateFlow, SoundPool + Triple MediaPlayer, DataStore |
 
 ---
 
@@ -24,13 +24,13 @@ A production-grade task orchestration application emphasizing polished micro-int
 ### 🔹 [Task 2: WGM Quiz — Who's Gonna Be Millionaire 🏆](./Task-2)
 An interactive, high-stakes quiz game built around the classic *Kaun Banega Crorepati / Who Wants to Be a Millionaire* format.
 - **Key Features:**
-  - **Immersive Home Screen:** Full-screen dark navy/purple background with animated spotlight rays, pulsing gold logo halo, tagline card, and a breathing-pulse gold START QUIZ button — no clutter, just the show's signature energy.
-  - **45-Question Tiered Bank:** Fully rewritten question engine with 3 real, hand-crafted questions per level across 15 difficulty tiers — from easy pop culture to expert-level quantum physics and Indian history.
-  - **Dynamic Prize Ladder:** Progressive 16-level money ladder (₹1,000 → ₹7 Crores) with Safe-Haven checkpoints at levels 5 and 10.
-  - **4-Lifeline System:** 50:50, Difficulty-weighted Audience Poll, Flip the Question, and Extra Life pop-up revival.
-  - **Dual MediaPlayer Audio Engine:** `Question.mp3` loops as an atmospheric background when each question loads; `Timer.mp3` takes over for the 30s countdown; 5 SoundPool SFX handle Lock, Correct, Wrong, Time Up, and Click events.
-  - **Data & Economy:** Room DB v2 (auto-migrates and re-seeds) with persistent score/coin economy via SharedPreferences.
-- **Tech Stack:** Kotlin, Jetpack Compose, Material 3, Room DB v2, Kotlin Coroutines, StateFlow, Dual MediaPlayer + SoundPool, SharedPreferences.
+  - **Immersive Home Screen with Iconic BGM:** Full-screen dark navy/purple gradient background with animated spotlight rays, pulsing gold logo halo, tagline card, breathing-pulse gold START QUIZ button, and atmospheric `WGM Home.mp3` theme.
+  - **45-Question Tiered Bank:** 3 hand-crafted, real-world questions per level across 15 difficulty tiers — from everyday pop culture and sports to expert-level quantum physics and Indian history.
+  - **Redesigned Money Ladder Screen:** Dedicated 15-tier prize progression (₹1,000 → ₹7 Crores / 100 → 2,000 Coins) with active player avatar position marker and Safe-Haven checkpoints at levels 5, 10, and 15.
+  - **4-Lifeline System & Custom Favicons:** 50:50 text pill, 3-person silhouette Audience Poll, Flip the Question refresh, and Extra Life pop-up revival dialog.
+  - **Triple MediaPlayer + SoundPool Audio Engine:** Looping MediaPlayers for `WGM Home.mp3`, `Question.mp3`, and `Timer.mp3` countdown; crisp SoundPool SFX for Lock, Correct, Wrong, and Time Up events.
+  - **Data & Economy:** Room DB v2 (with automatic migration & seeding) with persistent score, coin economy, and high scores.
+- **Tech Stack:** Kotlin, Jetpack Compose, Material 3, Room DB v2, Kotlin Coroutines, StateFlow, Triple MediaPlayer + SoundPool, DataStore / SharedPreferences.
 - **Documentation:** Explore the full [Task-2 README](./Task-2/README.md).
 
 ---
