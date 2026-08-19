@@ -201,7 +201,7 @@ class WgmQuizViewModel(
                 soundManager.play(WgmSound.CORRECT)
                 _uiState.update { state ->
                     val levelScore = MONEY_LADDER_VALUES.getOrElse(state.currentLevel - 1) { 0L }
-                    val coins = state.currentLevel * 100
+                    val coins = MONEY_LADDER_COINS.getOrElse(state.currentLevel - 1) { 0 }
                     state.copy(
                         gamePhase = GamePhase.CorrectReveal,
                         optionStates = state.optionStates.mapIndexed { i, _ ->
@@ -213,7 +213,7 @@ class WgmQuizViewModel(
                 }
                 delay(4000) // Increased to 4s: allow CORRECT music to complete
 
-                if (_uiState.value.currentLevel == 16) {
+                if (_uiState.value.currentLevel == 15) {
                     // Won Grand Jackpot!
                     _uiState.update { it.copy(
                         isGameOver = true,
@@ -320,7 +320,7 @@ class WgmQuizViewModel(
         val pollData = mutableMapOf<Int, Int>()
         var remaining = 100
         val correctIndex = question.correctAnswerIndex
-        val difficultyFactor = (16 - question.difficulty).coerceIn(1, 15)
+        val difficultyFactor = (15 - question.difficulty).coerceIn(1, 14)
 
         val correctShare = Random.nextInt(
             25 + difficultyFactor * 2,
@@ -372,7 +372,9 @@ class WgmQuizViewModel(
 
     fun useExtraLife() {
         // Extra Life: keep the same question but reset option states and timer
-        val currentQuestion = _uiState.value.currentQuestion
+        val state = _uiState.value
+        if (state.lifelines[LifelineType.EXTRA_LIFE] != LifelineStatus.AVAILABLE) return
+
         _uiState.update { s ->
             s.copy(
                 showExtraLifeDialog = false,

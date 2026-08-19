@@ -10,6 +10,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -235,32 +240,28 @@ fun WgmGameScreen(viewModel: WgmQuizViewModel) {
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 LifelineButton(
-                    label = "50:50",
-                    emoji = "✂️",
+                    type = LifelineType.FIFTY_FIFTY,
                     status = state.lifelines[LifelineType.FIFTY_FIFTY] ?: LifelineStatus.AVAILABLE,
                     onClick = { 
                         viewModel.useFiftyFifty() 
                     }
                 )
                 LifelineButton(
-                    label = "Poll",
-                    emoji = "📊",
+                    type = LifelineType.AUDIENCE_POLL,
                     status = state.lifelines[LifelineType.AUDIENCE_POLL] ?: LifelineStatus.AVAILABLE,
                     onClick = { 
                         viewModel.useAudiencePoll() 
                     }
                 )
                 LifelineButton(
-                    label = "Flip",
-                    emoji = "🔄",
+                    type = LifelineType.FLIP,
                     status = state.lifelines[LifelineType.FLIP] ?: LifelineStatus.AVAILABLE,
                     onClick = { 
                         viewModel.useFlip() 
                     }
                 )
                 LifelineButton(
-                    label = "Life",
-                    emoji = "❤️",
+                    type = LifelineType.EXTRA_LIFE,
                     status = state.lifelines[LifelineType.EXTRA_LIFE] ?: LifelineStatus.AVAILABLE,
                     onClick = { 
                         /* Handled via VM logic on wrong answer */ 
@@ -333,52 +334,111 @@ fun WgmGameScreen(viewModel: WgmQuizViewModel) {
 
 @Composable
 fun LifelineButton(
-    label: String,
-    emoji: String,
+    type: LifelineType,
     status: LifelineStatus,
     onClick: () -> Unit
 ) {
     val enabled = status == LifelineStatus.AVAILABLE
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        modifier = Modifier
+            .width(80.dp)
+            .height(50.dp)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        IconButton(
-            onClick = onClick,
-            enabled = enabled,
+        // Oval background with border
+        Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
+                .fillMaxSize()
+                .padding(4.dp)
+                .clip(RoundedCornerShape(50))
                 .background(
-                    if (enabled) WgmDarkCyanBlueStart.copy(alpha = 0.8f)
-                    else Color.Gray.copy(alpha = 0.15f)
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF001F3F),
+                            Color(0xFF003366)
+                        )
+                    )
                 )
-                .border(
-                    width = if (enabled) 2.dp else 1.dp,
-                    color = if (enabled) WgmMetallicGoldStart else Color.Gray.copy(alpha = 0.3f),
-                    shape = CircleShape
-                )
+                .border(2.dp, Color.White, RoundedCornerShape(50)),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = emoji,
-                fontSize = 22.sp
+            // Inner glow at bottom
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color(0xFF00BFFF).copy(alpha = 0.3f)
+                            )
+                        )
+                    )
             )
+
+            // Icon/Text based on type
+            when (type) {
+                LifelineType.FIFTY_FIFTY -> {
+                    Text(
+                        text = "50:50",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                LifelineType.AUDIENCE_POLL -> {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy((-4).dp),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        repeat(3) { index ->
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(if (index == 1) 24.dp else 20.dp)
+                            )
+                        }
+                    }
+                }
+                LifelineType.FLIP -> {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                LifelineType.EXTRA_LIFE -> {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
         }
-        Text(
-            text = label,
-            color = if (enabled) WgmMetallicGoldStart else Color.Gray.copy(alpha = 0.4f),
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-        // Status indicator
+
+        // Used overlay
         if (status == LifelineStatus.USED) {
-            Text(
-                text = "✗",
-                color = WgmCrimsonRedStart.copy(alpha = 0.6f),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(4.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "✗",
+                    color = Color.Red.copy(alpha = 0.8f),
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
