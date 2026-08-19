@@ -1,29 +1,41 @@
 # WGM Quiz — Who's Gonna Be Millionaire 🏆
 
-A modern, high-production Android quiz application inspired by the iconic *Kaun Banega Crorepati / Who Wants to Be a Millionaire* game show format. Built with **100% Jetpack Compose**, **Kotlin Coroutines**, **Room Database**, and **Clean Architecture (MVVM + UDF)**.
+A modern, high-production Android quiz application inspired by the iconic *Kaun Banega Crorepati / Who Wants to Be a Millionaire* game show format. Built with **100% Jetpack Compose**, **Kotlin Coroutines**, **Room Database**, **SoundPool & Triple MediaPlayer Audio Engine**, and **Clean Architecture (MVVM + UDF)**.
 
 ---
 
 ## 🌟 Highlights & Features
 
-### 1. 🎨 Home Screen Design
-- **Full-screen immersive entry**: Deep dark navy-to-midnight-blue vertical gradient background with animated radial spotlight rays.
+### 1. 🎨 Immersive Home Screen & Iconic BGM
+- **Iconic Ambient Background Music**: Features `WGM Home.mp3` playing smoothly in a loop upon launching the home screen to build game-show suspense.
+- **Full-Screen Immersive Visuals**: Deep dark navy-to-midnight-blue vertical gradient background with animated radial spotlight rays.
 - **Animated Millionaire Logo**: The iconic circular "Who's Gonna Be Millionaire" badge displayed at 260dp with a pulsing gold halo (animated `glowAlpha`).
 - **Tagline Card**: Semi-transparent dark purple card displaying *"One Question. / One Step Closer to a Million."*
 - **Gold START QUIZ Button**: Horizontal gold gradient pill (`#E6A800 → #FFC107`) with a circular ▶ play icon and subtle breathing pulse animation.
-- Clean, minimal layout — no distracting stats, nav bars, or secondary panels on the home screen.
 
 ### 2. 🎮 Core Game Engine & Mechanics
-- **Dynamic Prize Progression**: Progressive 16-level money ladder from **₹1,000** up to the grand jackpot of **₹7 Crores**.
+- **Dynamic 15-Tier Prize Progression**: Progressive 15-level money ladder from **₹1,000** up to the grand jackpot of **₹7 Crores**, paired with tiered coin earnings (100 to 2,000 coins).
 - **Safe-Haven Milestones**: Checkpoint thresholds securing earned cash even on a wrong answer:
-  - **Tier 1**: Level 5 (₹10,000)
-  - **Tier 2**: Level 10 (₹3,20,000)
-  - **Jackpot**: Level 16 (₹7,00,00,000)
-- **30-Second Active Countdown**: Circular countdown timer with real-time arc animation and urgency colour transitions (Gold → Orange → Red).
-- **Persistent Economy & Scoring**: Tracks coins earned, high scores, games played, and best levels saved locally across sessions via SharedPreferences.
+  - **Tier 1**: Level 5 (₹10,000 / 500 Coins)
+  - **Tier 2**: Level 10 (₹3,20,000 / 1,000 Coins)
+  - **Jackpot**: Level 15 (₹7,00,00,000 / 2,000 Coins)
+- **30-Second Active Countdown**: Circular countdown timer with real-time arc animation and urgency color transitions (Gold → Orange → Red).
+- **Persistent Economy & Scoring**: Tracks coins earned, high scores, games played, and best levels saved locally across sessions via SharedPreferences / DataStore.
 
-### 3. 📝 Question Bank — 45 Real Questions, 15 Difficulty Tiers
-The question engine has been fully rewritten with **45 hand-crafted, real-world questions** (3 per difficulty level), covering:
+### 3. 🪜 Redesigned Money Ladder Screen
+- **Top Jackpot Showcase**: Prominent gold hexagonal banner showcasing the ultimate ₹7 Crores prize and 2,000 coin bounty.
+- **Current Level Indicator**: Highlights active standing with a custom Player Avatar badge (`AvatarWithBadge`) and vibrant green hexagonal card.
+- **Progress Tracking**: Clear distinction between completed levels, active level, and upcoming milestones with dimming and glowing state cues.
+- **Quick Overlay Access**: Tap the `₹` icon on the game top bar anytime to inspect the ladder; tap anywhere to dismiss and resume gameplay.
+
+### 4. 🛟 Complete 4-Lifeline System & Custom Favicons
+- **50:50 (`50:50`)**: Instantly eliminates two incorrect choices with smooth visual fade out.
+- **Audience Poll (`👥`)**: Displays difficulty-weighted percentage distributions in a custom dialogue featuring a 3-person silhouette icon.
+- **Flip the Question (`🔄`)**: Swaps the current question with a fresh alternative of equal difficulty using a smooth refresh interaction.
+- **Extra Life (`❤️`)**: Automatically triggers a revival modal on an incorrect answer, allowing the player to stay in the game or walk away with guaranteed earnings.
+
+### 5. 📝 Question Bank — 45 Hand-Crafted Questions, 15 Difficulty Tiers
+The question engine is powered by **45 real-world questions** (3 per difficulty tier), ensuring varied replayability:
 
 | Levels | Category | Examples |
 |--------|----------|---------|
@@ -33,25 +45,22 @@ The question engine has been fully rewritten with **45 hand-crafted, real-world 
 | 10–12 | Hard: World history, advanced science, mathematics | Treaty of Versailles, Euler's number, atomic number of Gold |
 | 13–15 | Expert: Deep Indian history, computer science, quantum physics | Battle of Plassey, O(n log n), Riemann Hypothesis |
 
-### 4. 🛟 Complete 4-Lifeline System
-- **50:50 (`✂️`)**: Eliminates two incorrect choices with smooth visual transition.
-- **Audience Poll (`📊`)**: Custom modal dialog with difficulty-weighted probability distributions.
-- **Flip the Question (`🔄`)**: Swaps the current question with a fresh alternative of the same difficulty.
-- **Extra Life (`❤️`)**: Pop-up lifeline modal on incorrect answer granting a second chance.
-
-### 5. 🔊 Audio System — Dual MediaPlayer Architecture
-All 6 active audio assets are mapped to their intended game events:
+### 6. 🔊 Audio System — Triple MediaPlayer + SoundPool Architecture
+All 7 audio tracks and sound effects are engineered for low latency and dynamic transitions:
 
 | Asset | Engine | Trigger |
 |-------|--------|---------|
-| `Question.mp3` | **MediaPlayer (looping)** | Plays as sustained background the moment a question appears |
-| `Timer.mp3` | **MediaPlayer (looping)** | Replaces Question.mp3 when the 30s countdown begins |
-| `Lock.mp3` | SoundPool (one-shot) | On answer selection tap |
-| `Right Answer.mp3` | SoundPool (one-shot) | Correct answer revealed |
-| `Wrong Answer.mp3` | SoundPool (one-shot) | Wrong answer revealed |
-| `Time Up.mp3` | SoundPool (one-shot) | Timer reaches zero |
+| `WGM Home.mp3` | **MediaPlayer (looping)** | Plays atmospheric theme on Home screen; pauses on quiz start |
+| `Question.mp3` | **MediaPlayer (looping)** | Plays tension background when each question loads |
+| `Timer.mp3` | **MediaPlayer (looping)** | Replaces Question background when 30s countdown ticks |
+| `Lock.mp3` | **SoundPool (one-shot)** | On answer selection / lock |
+| `Right Answer.mp3` | **SoundPool (one-shot)** | Correct answer reveal & celebration |
+| `Wrong Answer.mp3` | **SoundPool (one-shot)** | Incorrect answer reveal |
+| `Time Up.mp3` | **SoundPool (one-shot)** | Timer reaches 0 seconds |
 
-**Audio transition flow**: Question appears → `Question.mp3` loops → `stopQuestionBg()` → `Timer.mp3` starts → answer selected → timer stops → result SFX plays. All audio is lifecycle-aware, pausing and resuming correctly with the Activity.
+**Audio Flow & Lifecycle Management**:
+`Home BGM` → `Quiz Start` → `Question BGM` → `Timer BGM` → `Answer Locked (SFX)` → `Result (SFX)`.
+All audio players are fully lifecycle-aware, pausing and resuming cleanly across Activity lifecycle events (`onPause`, `onResume`, `onDestroy`).
 
 ---
 
@@ -62,10 +71,10 @@ Strictly follows **Clean Architecture** with **Unidirectional Data Flow (UDF)**:
 ```
 app/
  ├── src/main/
- │    ├── assets/                    # Audio SFX (8 files) & Millionaire.png logo
+ │    ├── assets/                    # Audio tracks (7 MP3s) & Millionaire.png logo
  │    ├── java/com/wgm/quiz/
  │    │    ├── audio/
- │    │    │    ├── WgmSoundManager.kt   # Dual MediaPlayer + SoundPool engine
+ │    │    │    ├── WgmSoundManager.kt   # Triple MediaPlayer + SoundPool engine
  │    │    │    └── WgmSynthesizer.kt    # Pure Kotlin AudioTrack sine-wave generator
  │    │    ├── data/
  │    │    │    ├── local/               # Room DB (v2), DAO, Entities, ScoreRepository
@@ -74,10 +83,10 @@ app/
  │    │    │    ├── model/               # WgmQuestion domain model
  │    │    │    └── repository/          # WgmQuizRepository interface
  │    │    ├── ui/
- │    │    │    ├── components/          # Hexagon cards, Timer, Dialogs, Badges
- │    │    │    ├── screens/             # WgmHomeScreen, WgmGameScreen, MoneyLadder
- │    │    │    └── theme/               # Color tokens, gradients, shapes
- │    │    ├── viewmodel/                # MVVM StateFlow UDF game state machine
+ │    │    │    ├── components/          # Hexagon cards, Timer, Dialogs, Badges, Lifelines
+ │    │    │    ├── screens/             # WgmHomeScreen, WgmGameScreen, WgmMoneyLadderScreen
+ │    │    │    └── theme/               # Color tokens, gradients, shapes, typography
+ │    │    ├── viewmodel/                # MVVM StateFlow UDF game state machine (GamePhase)
  │    │    ├── MainActivity.kt
  │    │    ├── SplashActivity.kt
  │    │    └── WgmApplication.kt
@@ -88,12 +97,12 @@ app/
 
 ### Key Technologies
 - **Language**: Kotlin
-- **UI Framework**: Jetpack Compose + Material 3
-- **Architecture**: MVVM + Clean Architecture + UDF StateFlow
-- **Database**: Room v2 (with `fallbackToDestructiveMigration`)
-- **Persistence**: SharedPreferences (score & coin economy)
-- **Audio Engine**: Dual MediaPlayer (Question bg + Timer loop) + SoundPool (5 SFX)
-- **Target SDK**: Android 14 (API Level 34)
+- **UI Framework**: Jetpack Compose + Material 3 (Material Icons Extended)
+- **Architecture**: MVVM + Clean Architecture + UDF (`StateFlow`, `GamePhase`)
+- **Database**: Room v2 (with automatic migration & re-seeding)
+- **Persistence**: SharedPreferences / DataStore (score, high score & coin economy)
+- **Audio Engine**: Triple MediaPlayer (`WGM Home`, `Question`, `Timer`) + SoundPool (4 short SFX)
+- **Target SDK**: Android 15 / 14 (API Level 37 / Compile SDK 37)
 - **Min SDK**: Android 7.0 (API Level 24)
 
 ---
@@ -101,25 +110,25 @@ app/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Android Studio**: Hedgehog (2023.1.1) or newer
+- **Android Studio**: Ladybug / Koala / Hedgehog (2023.1.1+)
 - **JDK**: Java Development Kit 17
-- **Android SDK**: API Level 34
+- **Android SDK**: API Level 34+ (Compile SDK 37)
 
 ### Building & Running
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/codedbyamankanojiya/Syntecxhub-Tasks/Task-2.git
-   cd Task-2
+   git clone https://github.com/codedbyamankanojiya/Syntecxhub-Tasks.git
+   cd Syntecxhub-Tasks/Task-2
    ```
 2. **Open in Android Studio** and navigate to the `Task-2` directory.
 3. **Configure JDK 17** via `Settings → Build, Execution, Deployment → Build Tools → Gradle`.
-4. **Build & Run** on your target device / emulator (**Shift + F10**).
+4. **Build & Run** on your target device or emulator (**Shift + F10**).
 
-> **Note**: Room DB is at version 2 with `fallbackToDestructiveMigration()`. On first launch (or upgrade from v1), the database is wiped and all 45 real questions are seeded automatically.
+> **Note**: Room DB is configured at version 2 with `fallbackToDestructiveMigration()`. On first launch, the database automatically seeds all 45 hand-crafted questions across all 15 difficulty tiers.
 
 ---
 
 ## 🔒 Confidentiality & Repository Cleanliness
 - All build outputs (`build/`, `.gradle/`), machine-specific SDK files (`local.properties`), IDE workspace caches (`.idea/`), signing credentials, and keys are filtered via `.gitignore`.
 
-Built with ❤️ by Aman Kanojiya for Syntecxhub Internship & Virtual Training
+Built with ❤️ by **Aman Kanojiya** for **Syntecxhub Internship & Virtual Training Program**.
