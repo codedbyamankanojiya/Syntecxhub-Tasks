@@ -39,6 +39,7 @@ private.properties
 secure.properties
 keystore.properties
 signing.properties
+release.properties
 
 # API keys & service accounts
 google-services.json

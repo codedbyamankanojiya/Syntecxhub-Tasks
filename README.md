@@ -10,6 +10,7 @@ This repository documents and showcases the weekly production-grade Android deve
 |---|---|---|---|
 | **01** | [**Task 1: SyncTask**](./Task-1) <br> *(Advanced Task Management)* | • WorkManager Reminder Notifications <br>• Dual-direction Swipe Actions & Haptics <br>• Canvas Stats Progress Ring & Analytics <br>• Particle Celebration Burst Effects | **Clean Architecture + MVVM** <br>Jetpack Compose, Dagger Hilt, Room DB, WorkManager, Coroutines & Flow |
 | **02** | [**Task 2: WGM Quiz**](./Task-2) <br> *(Who's Gonna Be Millionaire)* | • 15-Tier Dynamic Money Ladder (₹1K – ₹7Cr) <br>• Complete 4-Lifeline Engine (50:50, Poll, Flip, Life) <br>• Triple MediaPlayer + SoundPool Audio Architecture <br>• Custom Hexagonal Geometry & Glowing UI <br>• Animated Splash Screen & Iconic Home Theme | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose, Room DB v2, StateFlow, SoundPool + Triple MediaPlayer, DataStore |
+| **03** | [**Task 3: DeshNews 24/7**](./Task-3) <br> *(Broadcast TV News App)* | • High-Contrast Dark Broadcast Studio UI (#0A0E17, #DC2626, #FACC15) <br>• Dual-Tone BREAKING\|NEWS Badge & 3D Stage Carousel <br>• GNews REST API Integration & Retrofit 2 + Kotlinx Serialization <br>• Room Database Offline-First Caching & Bookmark Persistence <br>• Edge-to-Edge Article Detail View with Timestamp Chips & Related Rail | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose M3, Dagger Hilt, Room DB, Retrofit 2, OkHttp, Coil, StateFlow |
 
 ---
 
@@ -32,6 +33,19 @@ An interactive, high-stakes quiz game built around the classic *Kaun Banega Cror
   - **Data & Economy:** Room DB v2 (with automatic migration & seeding) with persistent score, coin economy, and high scores.
 - **Tech Stack:** Kotlin, Jetpack Compose, Material 3, Room DB v2, Kotlin Coroutines, StateFlow, Triple MediaPlayer + SoundPool, DataStore / SharedPreferences.
 - **Documentation:** Explore the full [Task-2 README](./Task-2/README.md).
+
+---
+
+### 🔹 [Task 3: DeshNews 24/7 — Broadcast TV News App 📺](./Task-3)
+A production-ready news application modeled after a classic Indian TV Studio broadcast aesthetic with high-contrast visuals, live breaking banners, and full offline caching.
+- **Key Features:**
+  - **Broadcast Visual Design:** Deep Navy canvas (`#0A0E17`), Electric Crimson headers (`#DC2626`), and Studio Gold accents (`#FACC15`).
+  - **Iconic Dual-Tone Badge:** Split-box `BREAKING` (Gold/Black) + `NEWS` (Red/White) badge with live notification counter pill.
+  - **3D Studio Carousel:** Horizontal pager presenting top stories as dual-pane 3D stage cards with animated gold indicators.
+  - **Compact Headlines & Edge-to-Edge Detail:** Sleek card stack with red chips and full-bleed article reading experience with timestamp chips (`📅 Date | 🕐 Time | 🟢 LIVE`).
+  - **Offline-First Room Caching:** Instant cache retrieval on launch, silent background network synchronization, and persistent article bookmarks.
+- **Tech Stack:** Kotlin, Jetpack Compose Material 3, Dagger Hilt, Retrofit 2, OkHttp, Kotlinx Serialization, Room Database, Coil, StateFlow.
+- **Documentation:** Explore the full [Task-3 README](./Task-3/README.md).
 
 ---
 
