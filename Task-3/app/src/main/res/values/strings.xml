@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DeshNews 24/7</string>
+    <string name="breaking_news">Breaking News</string>
+    <string name="top_headlines">Top Headlines</string>
+    <string name="view_all">View All</string>
+    <string name="related_news">Related News</string>
+    <string name="live">LIVE</string>
+    <string name="loading">Loading news…</string>
+    <string name="error_loading">Failed to load news. Showing cached stories.</string>
+    <string name="no_news">No news available.</string>
+    <string name="bookmark_added">Bookmarked!</string>
+    <string name="bookmark_removed">Bookmark removed</string>
+    <string name="share">Share</string>
+    <string name="back">Back</string>
+</resources>
