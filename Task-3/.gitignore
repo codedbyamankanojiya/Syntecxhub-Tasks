@@ -1,0 +1,106 @@
+# ====================================================================
+# Task-3: DeshNews 24/7 — Android Project .gitignore
+# ====================================================================
+
+# ── Confidential, Secrets & Sensitive API Keys ───────────────────────
+local.properties
+app/local.properties
+*/local.properties
+
+.env
+.env.*
+*.env
+secrets.properties
+app/secrets.properties
+private.properties
+secure.properties
+
+# API keys, tokens & service accounts
+google-services.json
+credentials.json
+service-account*.json
+client_secrets.json
+auth_tokens.json
+jwt.json
+
+# Signing keystores & credentials (NEVER commit these)
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+*.cer
+*.crt
+signing.properties
+keystore.properties
+release.properties
+
+# ── Gradle & Android Build Outputs ───────────────────────────────────
+build/
+app/build/
+*/build/
+.gradle/
+app/.gradle/
+*/.gradle/
+
+# AGP intermediate directories
+app/src/main/generated/
+.cxx/
+.externalNativeBuild/
+bin/
+gen/
+out/
+
+# KSP (Kotlin Symbol Processing) outputs
+**/build/generated/ksp/
+
+# Room Database Schema exports
+app/schemas/
+**/schemas/
+
+# ── Compiled & Packaged Artifacts ────────────────────────────────────
+*.apk
+*.aab
+*.aar
+*.ap_
+*.dex
+*.class
+
+# ── Android Studio / IntelliJ IDEA ───────────────────────────────────
+.idea/
+app/.idea/
+*/.idea/
+*.iml
+*.iws
+*.ipr
+captures/
+.navigation/
+
+# ── VS Code & Other Editors ───────────────────────────────────────────
+.vscode/
+*.swp
+*.swo
+*~
+*.bak
+
+# ── OS & System Generated Files ───────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Logs & Crash Dumps ────────────────────────────────────────────────
+*.log
+hs_err_pid*
+replay_pid*
+
+# ── Kotlin & Gradle Caches ────────────────────────────────────────────
+.kotlin/
+kotlin-js-store/
+
+# Gradle wrapper verification files
+gradle/wrapper/gradle-wrapper.jar
