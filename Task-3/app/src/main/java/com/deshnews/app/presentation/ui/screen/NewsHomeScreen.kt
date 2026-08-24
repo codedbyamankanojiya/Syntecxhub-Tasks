@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -109,10 +108,7 @@ fun NewsHomeScreen(
             HomeTopBar(
                 isDarkMode = isDarkMode,
                 onRefresh = viewModel::refreshHeadlines,
-                onThemeToggle = viewModel::toggleTheme,
-                onSettingsClick = {
-                    scope.launch { snackbarHostState.showSnackbar("Settings coming soon") }
-                }
+                onThemeToggle = viewModel::toggleTheme
             )
         },
         bottomBar = {
@@ -187,8 +183,7 @@ fun NewsHomeScreen(
 private fun HomeTopBar(
     isDarkMode: Boolean,
     onRefresh: () -> Unit,
-    onThemeToggle: () -> Unit,
-    onSettingsClick: () -> Unit
+    onThemeToggle: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -229,14 +224,6 @@ private fun HomeTopBar(
                 Icon(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = "Refresh",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings",
                     tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(24.dp)
                 )
