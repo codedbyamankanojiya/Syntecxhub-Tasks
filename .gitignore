@@ -5,16 +5,26 @@
 
 # ── Android & Gradle Build Artefacts ─────────────────────────────────
 **/build/
+build/
 **/.gradle/
+.gradle/
+**/.gradle_home/
+.gradle_home/
 **/intermediate/
 **/outputs/
 **/generated/
 **/.kotlin/
+.kotlin/
 **/.cxx/
+.cxx/
 **/.externalNativeBuild/
+.externalNativeBuild/
 **/bin/
+bin/
 **/gen/
+gen/
 **/out/
+out/
 
 # Compiled/packaged binaries
 *.apk
@@ -25,36 +35,54 @@
 *.class
 
 # Room DB schema exports (generated, not source)
+app/schemas/
 **/schemas/
 
 # ── Secrets, Credentials & Local Config ──────────────────────────────
 local.properties
+*/local.properties
 **/local.properties
+app/local.properties
 .env
 .env.*
 *.env
 secrets.properties
+*/secrets.properties
 **/secrets.properties
+app/secrets.properties
 private.properties
+**/private.properties
 secure.properties
+**/secure.properties
 keystore.properties
+**/keystore.properties
 signing.properties
+**/signing.properties
 release.properties
+**/release.properties
 
-# API keys & service accounts
+# API keys, tokens & service accounts
 google-services.json
+**/google-services.json
 credentials.json
+**/credentials.json
 service-account*.json
+**/service-account*.json
 client_secrets.json
+**/client_secrets.json
 auth_tokens.json
+**/auth_tokens.json
 jwt.json
+**/jwt.json
+*.key
+*.token
+*.credentials
 
-# Signing artefacts
+# Signing artefacts (NEVER commit these)
 *.jks
 *.keystore
 *.p12
 *.pem
-*.key
 *.cer
 *.crt
 
@@ -62,12 +90,20 @@ jwt.json
 .idea/
 **/.idea/
 *.iml
+**/*.iml
 *.ipr
 *.iws
 .vscode/
 .vscode/**
+**/.vscode/
 captures/
 **/captures/
+.navigation/
+**/.navigation/
+*.swp
+*.swo
+*~
+*.bak
 
 # ── OS Generated Files ────────────────────────────────────────────────
 .DS_Store
@@ -86,4 +122,9 @@ replay_pid*
 
 # ── Kotlin & AGP Caches ───────────────────────────────────────────────
 .kotlin/
+**/.kotlin/
 kotlin-js-store/
+
+# Gradle wrapper verification files
+gradle/wrapper/gradle-wrapper.jar
+

@@ -10,7 +10,7 @@ This repository documents and showcases the weekly production-grade Android deve
 |---|---|---|---|
 | **01** | [**Task 1: SyncTask**](./Task-1) <br> *(Advanced Task Management)* | • WorkManager Reminder Notifications <br>• Dual-direction Swipe Actions & Haptics <br>• Canvas Stats Progress Ring & Analytics <br>• Particle Celebration Burst Effects | **Clean Architecture + MVVM** <br>Jetpack Compose, Dagger Hilt, Room DB, WorkManager, Coroutines & Flow |
 | **02** | [**Task 2: WGM Quiz**](./Task-2) <br> *(Who's Gonna Be Millionaire)* | • 15-Tier Dynamic Money Ladder (₹1K – ₹7Cr) <br>• Complete 4-Lifeline Engine (50:50, Poll, Flip, Life) <br>• Triple MediaPlayer + SoundPool Audio Architecture <br>• Custom Hexagonal Geometry & Glowing UI <br>• Animated Splash Screen & Iconic Home Theme | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose, Room DB v2, StateFlow, SoundPool + Triple MediaPlayer, DataStore |
-| **03** | [**Task 3: DeshNews 24/7**](./Task-3) <br> *(Broadcast TV News App)* | • High-Contrast Dark Broadcast Studio UI (#0A0E17, #DC2626, #FACC15) <br>• Dual-Tone BREAKING\|NEWS Badge & 3D Stage Carousel <br>• GNews REST API Integration & Retrofit 2 + Kotlinx Serialization <br>• Room Database Offline-First Caching & Bookmark Persistence <br>• Edge-to-Edge Article Detail View with Timestamp Chips & Related Rail | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose M3, Dagger Hilt, Room DB, Retrofit 2, OkHttp, Coil, StateFlow |
+| **03** | [**Task 3: DeshNews 24/7**](./Task-3) <br> *(Broadcast TV News App)* | • High-Contrast Indian TV Studio Aesthetic (#0A0E17, #DC2626, #FACC15) <br>• Dual-Tone DeshNews 24/7 Brand Badge & 3D Stage Carousel <br>• Native Jsoup Full-Text Web Extraction & In-App Reader <br>• Offline-First Room DB Caching with Offline Banner & Retry <br>• Collapsible Search with Custom Empty State & Settings Modal Sheet | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose M3, Dagger Hilt, Jsoup, Retrofit 2, Kotlinx Serialization, Room DB, Coil, StateFlow |
 
 ---
 
@@ -37,14 +37,16 @@ An interactive, high-stakes quiz game built around the classic *Kaun Banega Cror
 ---
 
 ### 🔹 [Task 3: DeshNews 24/7 — Broadcast TV News App 📺](./Task-3)
-A production-ready news application modeled after a classic Indian TV Studio broadcast aesthetic with high-contrast visuals, live breaking banners, and full offline caching.
+An authentic, production-grade Android news application inspired by high-contrast Indian TV Studio broadcast aesthetics, engineered with full offline-first caching, Jsoup web scraping, and unidirectional data flow.
 - **Key Features:**
-  - **Broadcast Visual Design:** Deep Navy canvas (`#0A0E17`), Electric Crimson headers (`#DC2626`), and Studio Gold accents (`#FACC15`).
-  - **Iconic Dual-Tone Badge:** Split-box `BREAKING` (Gold/Black) + `NEWS` (Red/White) badge with live notification counter pill.
-  - **3D Studio Carousel:** Horizontal pager presenting top stories as dual-pane 3D stage cards with animated gold indicators.
-  - **Compact Headlines & Edge-to-Edge Detail:** Sleek card stack with red chips and full-bleed article reading experience with timestamp chips (`📅 Date | 🕐 Time | 🟢 LIVE`).
-  - **Offline-First Room Caching:** Instant cache retrieval on launch, silent background network synchronization, and persistent article bookmarks.
-- **Tech Stack:** Kotlin, Jetpack Compose Material 3, Dagger Hilt, Retrofit 2, OkHttp, Kotlinx Serialization, Room Database, Coil, StateFlow.
+  - **Broadcast Studio Visual Design:** Curated palette featuring Deep Navy canvas (`#0A0E17`), Dark Slate ambient gradient (`#111827`), Card surface (`#151C2C`), crisp borders (`#1F293D`), Broadcast Red accents (`#DC2626`), Studio Gold highlights (`#FACC15`), and Live Green indicators (`#22C55E`).
+  - **Iconic Dual-Tone Badge & 3D Stage Carousel:** Split horizontal pill brand logo (`DeshNews` Gold + `24/7` Red) and horizontal banner carousel featuring animated morphing gold indicators.
+  - **Native Full-Text Extraction (Jsoup):** In-app web scraping engine extracting full article contents directly from news sources, providing a distraction-free, theme-consistent reading view without external browser redirects.
+  - **Smart Offline-First Architecture:** Instant cache emission backed by Room Database, silent background network sync, pull-to-refresh gestures, persistent article bookmarks, and an interactive `OfflineBanner` with tap-to-retry actions.
+  - **Collapsible Search & Custom Empty States:** Real-time news search with a responsive collapsible search bar and a dedicated illustration-backed empty state with quick search reset.
+  - **Centralized Settings Suite:** Professional Modal Bottom Sheet providing instant Dark/Light mode theme switching and application version/build metadata.
+  - **Secure API Configuration:** GNews REST API integrated via Retrofit 2 + Kotlinx Serialization, with compile-time API key injection through git-ignored `local.properties`.
+- **Tech Stack:** Kotlin, Jetpack Compose Material 3, Dagger Hilt, Jsoup, Retrofit 2, OkHttp, Kotlinx Serialization, Room Database, Coil, StateFlow.
 - **Documentation:** Explore the full [Task-3 README](./Task-3/README.md).
 
 ---
@@ -55,7 +57,7 @@ Across all tasks in this repository:
 - **Clean Architecture & Separation of Concerns:** Unidirectional Data Flow (UDF) with independent Data, Domain, and Presentation layers.
 - **100% Declarative UI:** Zero legacy XML layouts — built entirely with Jetpack Compose & Material 3 design tokens.
 - **Robust Persistence:** Offline-first architecture powered by Room Database and structured local storage.
-- **Security & Cleanliness:** Production-ready `.gitignore` configurations protecting local environments, credentials, and build caches.
+- **Security & Cleanliness:** Production-ready `.gitignore` configurations protecting local environments, credentials, API keys, and build caches across all project submodules.
 
 ---
 
