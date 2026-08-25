@@ -23,7 +23,9 @@ sealed class NewsUiState {
     data class Success(
         val headlines: List<NewsArticle>,
         val featuredArticles: List<NewsArticle> = headlines.take(5),
-        val isRefreshing: Boolean = false
+        val isRefreshing: Boolean = false,
+        val isSearch: Boolean = false,
+        val searchQuery: String = ""
     ) : NewsUiState()
 
     /**
