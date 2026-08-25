@@ -24,30 +24,47 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -57,10 +74,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.deshnews.app.domain.model.NewsArticle
@@ -73,15 +94,19 @@ import com.deshnews.app.presentation.ui.theme.StudioGold
 import com.deshnews.app.presentation.viewmodel.NewsViewModel
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsHomeScreen(
     onArticleClick: (String) -> Unit,
-    viewModel: NewsViewModel = hiltViewModel()
+    viewModel: NewsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val savedArticles by viewModel.bookmarkedArticles.collectAsStateWithLifecycle()
     val isDarkMode by viewModel.isDarkMode.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
+    var isSettingsSheetOpen by remember { mutableStateOf(false) }
+    val settingsSheetState = rememberModalBottomSheetState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -107,8 +132,11 @@ fun NewsHomeScreen(
         topBar = {
             HomeTopBar(
                 isDarkMode = isDarkMode,
-                onRefresh = viewModel::refreshHeadlines,
-                onThemeToggle = viewModel::toggleTheme
+                searchQuery = searchQuery,
+                onSearchQueryChange = viewModel::onSearchQueryChanged,
+                onSearch = { viewModel.searchNews() },
+                onClearSearch = viewModel::clearSearch,
+                onSettingsClick = { isSettingsSheetOpen = true }
             )
         },
         bottomBar = {
@@ -126,33 +154,74 @@ fun NewsHomeScreen(
         ) {
             when (selectedTab) {
                 0 -> { // Home
-                    AnimatedContent(
-                        targetState = uiState,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        label = "homeContentTransition",
-                        modifier = Modifier.fillMaxSize()
-                    ) { state: NewsUiState ->
-                        when (state) {
-                            is NewsUiState.Loading -> LoadingContent()
-                            is NewsUiState.Success -> SuccessContent(
-                                state = state,
-                                onArticleClick = onArticleClick,
-                                onBookmarkClick = { article ->
-                                    viewModel.toggleBookmark(article.url)
-                                    scope.launch {
-                                        val message = if (article.isBookmarked) "Removed from Saved" else "Article Saved"
-                                        snackbarHostState.showSnackbar(message)
-                                    }
-                                },
-                                onShareClick = shareArticle
-                            )
-                            is NewsUiState.Error -> ErrorContent(
-                                state = state,
-                                onArticleClick = onArticleClick,
-                                onRetry = viewModel::refreshHeadlines,
-                                onShareClick = shareArticle
-                            )
+                    val pullRefreshState = rememberPullToRefreshState()
+                    val isRefreshing = (uiState as? NewsUiState.Success)?.isRefreshing == true
+
+                    LaunchedEffect(isRefreshing) {
+                        if (isRefreshing) pullRefreshState.startRefresh()
+                        else pullRefreshState.endRefresh()
+                    }
+
+                    if (pullRefreshState.isRefreshing) {
+                        LaunchedEffect(pullRefreshState.isRefreshing) {
+                            viewModel.refreshHeadlines()
                         }
+                    }
+
+                    Box(modifier = Modifier.nestedScroll(pullRefreshState.nestedScrollConnection)) {
+                        AnimatedContent(
+                            targetState = uiState,
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            label = "homeContentTransition",
+                            modifier = Modifier.fillMaxSize()
+                        ) { state: NewsUiState ->
+                            Box(Modifier.fillMaxSize()) {
+                                when (state) {
+                                    is NewsUiState.Loading -> LoadingContent()
+                                    is NewsUiState.Success -> SuccessContent(
+                                        state = state,
+                                        onArticleClick = onArticleClick,
+                                        onBookmarkClick = { article ->
+                                            viewModel.toggleBookmark(article.url)
+                                            scope.launch {
+                                                val message = if (article.isBookmarked) "Removed from Saved" else "Article Saved"
+                                                snackbarHostState.showSnackbar(message)
+                                            }
+                                        },
+                                        onShareClick = shareArticle
+                                    )
+                                    is NewsUiState.Error -> {
+                                        if (state.cachedArticles.isNotEmpty()) {
+                                            Column {
+                                                OfflineBanner(onRetry = viewModel::refreshHeadlines)
+                                                SuccessContent(
+                                                    state = NewsUiState.Success(headlines = state.cachedArticles),
+                                                    onArticleClick = onArticleClick,
+                                                    onBookmarkClick = { article ->
+                                                        viewModel.toggleBookmark(article.url)
+                                                    },
+                                                    onShareClick = shareArticle
+                                                )
+                                            }
+                                        } else {
+                                            ErrorContent(
+                                                state = state,
+                                                onArticleClick = onArticleClick,
+                                                onRetry = viewModel::refreshHeadlines,
+                                                onShareClick = shareArticle
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        PullToRefreshContainer(
+                            state = pullRefreshState,
+                            modifier = Modifier.align(Alignment.TopCenter),
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = BroadcastRed
+                        )
                     }
                 }
                 1 -> { // Categories
@@ -176,20 +245,34 @@ fun NewsHomeScreen(
                 }
             }
         }
+
+        if (isSettingsSheetOpen) {
+            SettingsBottomSheet(
+                isDarkMode = isDarkMode,
+                onThemeToggle = viewModel::toggleTheme,
+                onDismiss = { isSettingsSheetOpen = false },
+                sheetState = settingsSheetState
+            )
+        }
     }
 }
 
 @Composable
 private fun HomeTopBar(
     isDarkMode: Boolean,
-    onRefresh: () -> Unit,
-    onThemeToggle: () -> Unit
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    onClearSearch: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
-    Row(
+    var isSearchExpanded by remember { mutableStateOf(false) }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                Brush.horizontalGradient(
+                Brush.verticalGradient(
                     listOf(
                         BroadcastRed.copy(alpha = if (isDarkMode) 0.15f else 0.08f),
                         MaterialTheme.colorScheme.background
@@ -197,36 +280,186 @@ private fun HomeTopBar(
                 )
             )
             .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            IconButton(onClick = onThemeToggle) {
-                Icon(
-                    imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
-                    contentDescription = "Toggle Theme",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(24.dp)
+        if (!isSearchExpanded) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    BreakingNewsBadge(fontSize = 12.sp)
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    IconButton(onClick = { isSearchExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        } else {
+            // Expanded Search Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { 
+                    isSearchExpanded = false
+                    onClearSearch()
+                }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 4.dp),
+                    placeholder = { Text("Search news...", fontSize = 14.sp) },
+                    trailingIcon = {
+                        if (searchQuery.isNotBlank()) {
+                            IconButton(onClick = onClearSearch) {
+                                Text("✕", fontWeight = FontWeight.Bold, color = BroadcastRed)
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = BroadcastRed,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearch() })
                 )
             }
-            BreakingNewsBadge(fontSize = 12.sp)
         }
+    }
+}
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsBottomSheet(
+    isDarkMode: Boolean,
+    onThemeToggle: () -> Unit,
+    onDismiss: () -> Unit,
+    sheetState: SheetState
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 12.dp)
+                    .size(32.dp, 4.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            IconButton(onClick = onRefresh) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Refresh",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(24.dp)
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(24.dp))
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Icon(
+                        imageVector = if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+                        contentDescription = null,
+                        tint = BroadcastRed
+                    )
+                    Column {
+                        Text(
+                            text = "Appearance",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = if (isDarkMode) "Dark Mode active" else "Light Mode active",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Switch(
+                    checked = isDarkMode,
+                    onCheckedChange = { onThemeToggle() },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = BroadcastRed,
+                        uncheckedThumbColor = BroadcastRed,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    )
                 )
+            }
+            
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(Modifier.height(16.dp))
+            
+            Text(
+                text = "DeshNews v1.0.0",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+            Spacer(Modifier.height(16.dp))
+
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BroadcastRed)
+            ) {
+                Text("Close", fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -354,18 +587,20 @@ private fun SuccessContent(
         contentPadding      = PaddingValues(bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        item {
-            Spacer(Modifier.height(12.dp))
-            StudioBannerCarousel(
-                articles       = state.featuredArticles,
-                onArticleClick = { onArticleClick(it.url) }
-            )
-            Spacer(Modifier.height(20.dp))
+        if (!state.isSearch) {
+            item {
+                Spacer(Modifier.height(12.dp))
+                StudioBannerCarousel(
+                    articles       = state.featuredArticles,
+                    onArticleClick = { onArticleClick(it.url) }
+                )
+                Spacer(Modifier.height(20.dp))
+            }
         }
 
         item {
             SectionHeader(
-                title = "TOP HEADLINES",
+                title = if (state.isSearch) "RESULTS FOR '${state.searchQuery.uppercase()}'" else "TOP HEADLINES",
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(Modifier.height(12.dp))
@@ -559,3 +794,33 @@ private fun DeshNewsBottomBar(
 }
 
 private data class NavItem(val label: String, val icon: ImageVector, val selectedIcon: ImageVector)
+
+@Composable
+private fun OfflineBanner(onRetry: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(BroadcastRed)
+            .clickable(onClick = onRetry)
+            .padding(vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Offline Mode — Showing Cached News",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Tap to Retry",
+                color = StudioGold,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+    }
+}

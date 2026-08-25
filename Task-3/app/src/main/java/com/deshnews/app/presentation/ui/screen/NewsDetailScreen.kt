@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,8 @@ import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -72,6 +75,7 @@ fun NewsDetailScreen(
     articleUrl: String,
     onBack: () -> Unit,
     onArticleClick: (String) -> Unit,
+    onReadFullArticle: (String, String) -> Unit,
     viewModel: NewsViewModel = hiltViewModel()
 ) {
     val detailState by viewModel.detailUiState.collectAsStateWithLifecycle()
@@ -148,6 +152,9 @@ fun NewsDetailScreen(
                             }
                             val chooser = Intent.createChooser(shareIntent, "Share News Article")
                             context.startActivity(chooser)
+                        },
+                        onReadFullArticle = {
+                            onReadFullArticle(state.article.url, state.article.title)
                         }
                     )
                 }
@@ -163,7 +170,8 @@ private fun DetailContent(
     onBack: () -> Unit,
     onArticleClick: (String) -> Unit,
     onBookmark: () -> Unit,
-    onShare: () -> Unit
+    onShare: () -> Unit,
+    onReadFullArticle: () -> Unit
 ) {
     LazyColumn(
         modifier       = Modifier
@@ -222,11 +230,57 @@ private fun DetailContent(
         }
 
         item {
+            val isSnippet = article.content.length < 500
+            
+            if (isSnippet) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = BroadcastRed)
+                    Text(
+                        text = "Fetching full story...",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = BroadcastRed
+                    )
+                }
+            }
+
             ArticleBody(
                 content  = article.content.ifBlank { article.description },
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(Modifier.height(24.dp))
+            
+            // Only show the "Read Original" button if we are still showing a snippet 
+            // (i.e. if scraping hasn't replaced it with a long text yet)
+            if (article.content.length < 500) {
+                Button(
+                    onClick = onReadFullArticle,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BroadcastRed),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Read Full Story on ${article.sourceName}",
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite
+                    )
+                }
+            } else {
+                // If we have the full text, show a small attribution
+                Text(
+                    text = "Full article extracted from ${article.sourceName}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+            Spacer(Modifier.height(32.dp))
         }
 
         if (relatedArticles.isNotEmpty()) {
@@ -424,26 +478,46 @@ private fun TimestampChip(icon: String, text: String) {
 
 @Composable
 private fun ArticleBody(content: String, modifier: Modifier = Modifier) {
-    val paragraphs = content
+    // Aggressively strip the "[+xxxx chars]" suffix that GNews API adds to truncated content
+    // We also remove trailing ellipses and whitespace that often precede it
+    val cleanContent = content
+        .replace(Regex("\\s*\\.*…?\\s*\\[[\\s\\d+]*chars\\s*]", RegexOption.IGNORE_CASE), "")
+        .trim()
+    
+    val paragraphs = cleanContent
         .split("\n\n", "\n")
         .map { it.trim() }
         .filter { it.isNotBlank() }
-        .ifEmpty { listOf(content) }
 
     Column(
         modifier            = modifier,
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        paragraphs.forEach { paragraph ->
-            Text(
-                text  = paragraph,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color      = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 26.sp
-                )
-            )
+        SelectionContainer {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                if (paragraphs.isEmpty()) {
+                    if (cleanContent.isNotBlank()) {
+                        ArticleParagraph(text = cleanContent)
+                    }
+                } else {
+                    paragraphs.forEach { paragraph ->
+                        ArticleParagraph(text = paragraph)
+                    }
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun ArticleParagraph(text: String) {
+    Text(
+        text  = text,
+        style = MaterialTheme.typography.bodyLarge.copy(
+            color      = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 26.sp
+        )
+    )
 }
 
 @Composable
