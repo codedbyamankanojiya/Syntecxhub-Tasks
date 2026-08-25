@@ -40,6 +40,9 @@ class NewsViewModel @Inject constructor(
     private val _isDarkMode = MutableStateFlow(true)
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
     // ── Detail screen state ────────────────────────────────────────────────────
 
     private val _detailUiState = MutableStateFlow<DetailUiState>(DetailUiState.Loading)
@@ -98,6 +101,48 @@ class NewsViewModel @Inject constructor(
     fun setCategory(category: String) {
         if (_selectedCategory.value == category) return
         _selectedCategory.value = category
+        _searchQuery.value = "" // Clear search when category changes
+        observeHeadlines()
+        refreshHeadlines()
+    }
+
+    // ── Intent: Search ─────────────────────────────────────────────────────────
+
+    fun onSearchQueryChanged(query: String) {
+        _searchQuery.value = query
+        if (query.isBlank()) {
+            observeHeadlines()
+        }
+    }
+
+    fun searchNews() {
+        val query = _searchQuery.value
+        if (query.isBlank()) return
+
+        viewModelScope.launch {
+            _uiState.update { NewsUiState.Loading }
+            val result = repository.searchNews(query)
+            result.onSuccess { articles ->
+                _uiState.update {
+                    NewsUiState.Success(
+                        headlines = articles,
+                        isSearch = true,
+                        searchQuery = query
+                    )
+                }
+            }.onFailure { e ->
+                _uiState.update {
+                    NewsUiState.Error(
+                        message = e.message ?: "Search failed",
+                        cachedArticles = emptyList()
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearSearch() {
+        _searchQuery.value = ""
         observeHeadlines()
         refreshHeadlines()
     }
@@ -130,6 +175,12 @@ class NewsViewModel @Inject constructor(
     // ── Intent: pull-to-refresh ────────────────────────────────────────────────
 
     fun refreshHeadlines() {
+        val currentQuery = _searchQuery.value
+        if (currentQuery.isNotBlank()) {
+            searchNews()
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { current ->
                 when (current) {
@@ -170,6 +221,24 @@ class NewsViewModel @Inject constructor(
 
             val related = buildRelatedArticles(article)
             _detailUiState.update { DetailUiState.Success(article, related) }
+
+            // Trigger background extraction of FULL news content
+            fetchFullNews(url)
+        }
+    }
+
+    private fun fetchFullNews(url: String) {
+        viewModelScope.launch {
+            val result = repository.fetchFullArticleContent(url)
+            result.onSuccess { fullContent ->
+                _detailUiState.update { current ->
+                    if (current is DetailUiState.Success && current.article.url == url) {
+                        current.copy(
+                            article = current.article.copy(content = fullContent)
+                        )
+                    } else current
+                }
+            }
         }
     }
 
