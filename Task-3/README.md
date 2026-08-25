@@ -1,4 +1,4 @@
-# 📺 DeshNews 24/7 — Production-Ready Broadcast TV News App
+﻿# 📺 DeshNews 24/7 — Production-Ready Broadcast TV News App
 
 An authentic, production-grade Android news application inspired by high-contrast Indian TV Studio broadcast aesthetics. Engineered with **100% Jetpack Compose (Material 3)**, **Clean Architecture + MVVM (Unidirectional Data Flow)**, **Jsoup Full-Text Extraction**, **Room Database Offline-First Caching**, and **Dagger Hilt Dependency Injection**.
 
@@ -31,7 +31,9 @@ Powered by the **GNews REST API**, the application streams breaking top headline
 | Token | Hex Value | Application |
 |---|---|---|
 | **Deep Navy (Canvas)** | `#0A0E17` | Root window background & status/navigation bar fill |
+| **Dark Slate (Ambient)** | `#111827` | Subtle vertical gradient shading |
 | **Card Surface** | `#151C2C` | Headline cards, bottom navigation bar, chip containers |
+| **Card Border** | `#1F293D` | 1dp crisp dividers & card stroke borders |
 | **Broadcast Red** | `#DC2626` | Header accents, active tab indicators, and Offline banners |
 | **Studio Gold** | `#FACC15` | `DeshNews` brand segment, pager indicator dots, bookmark stars |
 | **Live Green** | `#22C55E` | 🟢 `LIVE` studio status chips |
@@ -51,20 +53,20 @@ Powered by the **GNews REST API**, the application streams breaking top headline
 ### 1. Native Full-Text Extraction (Jsoup)
 The app goes beyond snippets. Using **Jsoup background scraping**, DeshNews 24/7 fetches the source webpage, extracts the core article text, and renders it natively within the app UI. This eliminates the need for external browsers and provides a theme-consistent reading experience.
 
-### 2. In-App Reader Mode (WebView Hybrid)
-For articles where native extraction is restricted, a high-performance **In-App WebView** acts as a backup. It injects custom CSS to hide ads, headers, and sidebars, automatically matching the app's light/dark theme for a "Reader Mode" experience.
-
-### 3. Smart Offline Experience
+### 2. Smart Offline Experience
 When the network is lost, the app doesn't crash or show a blank screen. Instead:
 - An **`OfflineBanner`** appears with a "Tap to Retry" action.
-- The app serves the last 10-50 articles from the **Room Cache**.
+- The app serves the last articles from the **Room Cache**.
 - Users can still browse, read summaries, and view bookmarked news offline.
+
+### 3. Professional Search & Empty States
+The search interface is not just functional but resilient. If a search query yields no results, a dedicated **Search Empty State** appears with a custom illustration and a quick "Clear Search" action to restore the main feed.
 
 ### 4. Professional Settings Suite
 A centralized **Modal Bottom Sheet** allows users to:
 - Toggle between **Dark Mode** and **Light Mode** instantly.
 - View application version and build information.
-- Manage persistent preferences in a clean, uncluttered interface.
+- Access system-wide controls in a clean, uncluttered interface.
 
 ---
 

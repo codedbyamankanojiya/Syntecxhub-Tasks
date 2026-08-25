@@ -178,18 +178,27 @@ fun NewsHomeScreen(
                             Box(Modifier.fillMaxSize()) {
                                 when (state) {
                                     is NewsUiState.Loading -> LoadingContent()
-                                    is NewsUiState.Success -> SuccessContent(
-                                        state = state,
-                                        onArticleClick = onArticleClick,
-                                        onBookmarkClick = { article ->
-                                            viewModel.toggleBookmark(article.url)
-                                            scope.launch {
-                                                val message = if (article.isBookmarked) "Removed from Saved" else "Article Saved"
-                                                snackbarHostState.showSnackbar(message)
-                                            }
-                                        },
-                                        onShareClick = shareArticle
-                                    )
+                                    is NewsUiState.Success -> {
+                                        if (state.isSearch && state.headlines.isEmpty()) {
+                                            SearchEmptyState(
+                                                query = state.searchQuery,
+                                                onClear = viewModel::clearSearch
+                                            )
+                                        } else {
+                                            SuccessContent(
+                                                state = state,
+                                                onArticleClick = onArticleClick,
+                                                onBookmarkClick = { article ->
+                                                    viewModel.toggleBookmark(article.url)
+                                                    scope.launch {
+                                                        val message = if (article.isBookmarked) "Removed from Saved" else "Article Saved"
+                                                        snackbarHostState.showSnackbar(message)
+                                                    }
+                                                },
+                                                onShareClick = shareArticle
+                                            )
+                                        }
+                                    }
                                     is NewsUiState.Error -> {
                                         if (state.cachedArticles.isNotEmpty()) {
                                             Column {
@@ -445,7 +454,7 @@ private fun SettingsBottomSheet(
             Spacer(Modifier.height(16.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(Modifier.height(16.dp))
-            
+
             Text(
                 text = "DeshNews v1.0.0",
                 style = MaterialTheme.typography.labelSmall,
@@ -789,6 +798,46 @@ private fun DeshNewsBottomBar(
                     indicatorColor      = BroadcastRed.copy(alpha = 0.12f)
                 )
             )
+        }
+    }
+}
+
+@Composable
+private fun SearchEmptyState(query: String, onClear: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text("🔍", fontSize = 64.sp)
+            Text(
+                text = "No results found for \"$query\"",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                ),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Text(
+                text = "Try searching for something else or check your spelling.",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = onClear,
+                colors = ButtonDefaults.buttonColors(containerColor = BroadcastRed),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Clear Search", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

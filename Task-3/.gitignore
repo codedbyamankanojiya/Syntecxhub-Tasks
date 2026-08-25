@@ -6,34 +6,50 @@
 local.properties
 app/local.properties
 */local.properties
+**/local.properties
 
 .env
 .env.*
 *.env
 secrets.properties
 app/secrets.properties
+*/secrets.properties
+**/secrets.properties
 private.properties
+**/private.properties
 secure.properties
+**/secure.properties
+keystore.properties
+**/keystore.properties
+signing.properties
+**/signing.properties
+release.properties
+**/release.properties
 
 # API keys, tokens & service accounts
 google-services.json
+**/google-services.json
 credentials.json
+**/credentials.json
 service-account*.json
+**/service-account*.json
 client_secrets.json
+**/client_secrets.json
 auth_tokens.json
+**/auth_tokens.json
 jwt.json
+**/jwt.json
+*.key
+*.token
+*.credentials
 
 # Signing keystores & credentials (NEVER commit these)
 *.jks
 *.keystore
 *.p12
 *.pem
-*.key
 *.cer
 *.crt
-signing.properties
-keystore.properties
-release.properties
 
 # ── Gradle & Android Build Outputs ───────────────────────────────────
 build/
