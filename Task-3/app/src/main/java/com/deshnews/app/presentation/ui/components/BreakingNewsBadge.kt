@@ -19,11 +19,11 @@ import com.deshnews.app.presentation.ui.theme.BroadcastRed
 import com.deshnews.app.presentation.ui.theme.StudioGold
 
 /**
- * Iconic dual-tone "BREAKING | NEWS" badge as seen in Indian broadcast TV.
+ * Iconic dual-tone "DeshNews | 24/7" logo badge.
  *
  * Layout:
  * ┌──────────────┬────────────┐
- * │  BREAKING    │   NEWS     │
+ * │  DeshNews    │   24/7     │
  * │ (Black/Gold) │ (White/Red)│
  * └──────────────┴────────────┘
  *
@@ -42,27 +42,27 @@ fun BreakingNewsBadge(
         modifier          = modifier.clip(shape),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // ── "BREAKING" — Black text on Studio Gold ────────────────
+        // ── "DeshNews" — Black text on Studio Gold ────────────────
         Text(
-            text       = "BREAKING",
+            text       = "DeshNews",
             color      = Color.Black,
             fontWeight = FontWeight.Black,
             fontSize   = fontSize,
-            letterSpacing = 0.6.sp,
+            letterSpacing = 0.4.sp,
             modifier   = Modifier
                 .background(StudioGold)
-                .padding(horizontal = 7.dp, vertical = 3.dp)
+                .padding(horizontal = 8.dp, vertical = 3.dp)
         )
-        // ── "NEWS" — White text on Broadcast Red ──────────────────
+        // ── "24/7" — White text on Broadcast Red ──────────────────
         Text(
-            text       = "NEWS",
+            text       = "24/7",
             color      = Color.White,
             fontWeight = FontWeight.Black,
             fontSize   = fontSize,
             letterSpacing = 0.6.sp,
             modifier   = Modifier
                 .background(BroadcastRed)
-                .padding(horizontal = 7.dp, vertical = 3.dp)
+                .padding(horizontal = 8.dp, vertical = 3.dp)
         )
     }
 }
