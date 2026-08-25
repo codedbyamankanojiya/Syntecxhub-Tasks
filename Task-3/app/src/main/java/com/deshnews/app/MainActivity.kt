@@ -16,6 +16,7 @@ import androidx.navigation.navArgument
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.deshnews.app.presentation.ui.screen.FullNewsScreen
 import com.deshnews.app.presentation.ui.screen.NewsDetailScreen
 import com.deshnews.app.presentation.ui.screen.NewsHomeScreen
 import com.deshnews.app.presentation.ui.theme.DeshNewsTheme
@@ -77,7 +78,31 @@ class MainActivity : ComponentActivity() {
                                     StandardCharsets.UTF_8.toString()
                                 )
                                 navController.navigate(Screen.Detail.createRoute(encodedNext))
+                            },
+                            onReadFullArticle = { url, title ->
+                                val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString())
+                                val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.toString())
+                                navController.navigate(Screen.FullStory.createRoute(encodedUrl, encodedTitle))
                             }
+                        )
+                    }
+
+                    composable(
+                        route = Screen.FullStory.route,
+                        arguments = listOf(
+                            navArgument("articleUrl") { type = NavType.StringType },
+                            navArgument("title") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val encodedUrl = backStackEntry.arguments?.getString("articleUrl") ?: ""
+                        val encodedTitle = backStackEntry.arguments?.getString("title") ?: ""
+                        val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
+                        val title = URLDecoder.decode(encodedTitle, StandardCharsets.UTF_8.toString())
+                        
+                        FullNewsScreen(
+                            url = url,
+                            title = title,
+                            onBack = { navController.popBackStack() }
                         )
                     }
                 }
@@ -91,5 +116,8 @@ sealed class Screen(val route: String) {
     object Home   : Screen("home")
     object Detail : Screen("detail/{articleUrl}") {
         fun createRoute(encodedUrl: String) = "detail/$encodedUrl"
+    }
+    object FullStory : Screen("full-story/{articleUrl}/{title}") {
+        fun createRoute(encodedUrl: String, encodedTitle: String) = "full-story/$encodedUrl/$encodedTitle"
     }
 }

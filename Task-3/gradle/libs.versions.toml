@@ -18,6 +18,8 @@ lifecycleRuntimeKtx          = "2.7.0"
 lifecycleViewmodelCompose     = "2.7.0"
 activityCompose              = "1.8.2"
 coreSplashScreen             = "1.0.1"
+androidxBrowser              = "1.8.0"
+jsoup                        = "1.17.2"
 
 [libraries]
 androidx-core-ktx                  = { group = "androidx.core",           name = "core-ktx",                        version.ref = "coreKtx" }
@@ -49,6 +51,8 @@ coil-compose                       = { group = "io.coil-kt",               name 
 coroutines-android                 = { group = "org.jetbrains.kotlinx",   name = "kotlinx-coroutines-android",       version.ref = "coroutines" }
 compose-ui-tooling                 = { group = "androidx.compose.ui",      name = "ui-tooling" }
 compose-ui-test-manifest           = { group = "androidx.compose.ui",      name = "ui-test-manifest" }
+androidx-browser                   = { group = "androidx.browser",         name = "browser",                         version.ref = "androidxBrowser" }
+jsoup                              = { group = "org.jsoup",                name = "jsoup",                           version.ref = "jsoup" }
 
 [plugins]
 android-application      = { id = "com.android.application",                    version.ref = "agp" }
