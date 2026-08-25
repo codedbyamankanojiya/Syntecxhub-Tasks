@@ -45,4 +45,15 @@ interface NewsRepository {
      * Returns `null` if the article has been evicted.
      */
     suspend fun getArticleByUrl(url: String): NewsArticle?
+
+    /**
+     * Fetches the full content of an article by scraping its source URL.
+     */
+    suspend fun fetchFullArticleContent(url: String): Result<String>
+
+    /**
+     * Searches for news articles matching the given query.
+     * This is a one-shot network call and is NOT cached in Room.
+     */
+    suspend fun searchNews(query: String): Result<List<NewsArticle>>
 }
