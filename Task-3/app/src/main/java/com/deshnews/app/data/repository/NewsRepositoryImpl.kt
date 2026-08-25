@@ -7,8 +7,11 @@ import com.deshnews.app.data.remote.NewsApiService
 import com.deshnews.app.data.remote.dto.ArticleDto
 import com.deshnews.app.domain.model.NewsArticle
 import com.deshnews.app.domain.repository.NewsRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import org.jsoup.Jsoup
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,6 +40,33 @@ class NewsRepositoryImpl @Inject constructor(
     override suspend fun getArticleByUrl(url: String): NewsArticle? =
         newsDao.getArticleByUrl(url)?.toDomain()
 
+    override suspend fun fetchFullArticleContent(url: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val doc = Jsoup.connect(url)
+                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36")
+                .timeout(10000)
+                .get()
+
+            // Heuristic to find article content:
+            // Look for <article> tag first, then fallback to divs with common article classes
+            val articleBody = doc.select("article").firstOrNull() 
+                ?: doc.select("div[class*=article], div[class*=content], div[class*=post], main").firstOrNull()
+                ?: doc.body()
+
+            // Extract text from all paragraph tags within that container
+            val paragraphs = articleBody.select("p")
+            if (paragraphs.isEmpty()) {
+                // Fallback: if no <p> tags, just get the whole text of the body but it might be messy
+                articleBody.text()
+            } else {
+                paragraphs.joinToString("\n\n") { it.text() }
+            }
+        }.mapCatching { content ->
+            if (content.length < 100) throw Exception("Could not extract full content")
+            content
+        }
+    }
+
     // ── Write ──────────────────────────────────────────────────────────────────
 
     override suspend fun refreshHeadlines(category: String): Result<Unit> = runCatching {
@@ -63,6 +93,23 @@ class NewsRepositoryImpl @Inject constructor(
 
     override suspend fun toggleBookmark(url: String, isBookmarked: Boolean) {
         newsDao.updateBookmark(url, isBookmarked)
+    }
+
+    override suspend fun searchNews(query: String): Result<List<NewsArticle>> = runCatching {
+        val response = apiService.searchNews(
+            query = query,
+            token = BuildConfig.GNEWS_API_KEY
+        )
+
+        // Map to domain, but check against bookmarks in case some articles are already saved
+        val bookmarkedUrls = newsDao.getArticlesSnapshot().filter { it.isBookmarked }.map { it.url }.toSet()
+
+        response.articles.map { dto ->
+            val article = dto.toEntity("search", dto.url in bookmarkedUrls).toDomain()
+            // We don't want "search" category in domain usually, but toEntity needs it.
+            // Domain model doesn't strictly need category, but toDomain passes it.
+            article
+        }
     }
 
     // ── Mappers ────────────────────────────────────────────────────────────────
