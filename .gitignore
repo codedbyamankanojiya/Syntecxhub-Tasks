@@ -85,6 +85,8 @@ jwt.json
 *.pem
 *.cer
 *.crt
+*.p8
+*.mobileprovision
 
 # ── IDE & Editor Files ────────────────────────────────────────────────
 .idea/
@@ -115,10 +117,12 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# ── Logs & Crash Dumps ────────────────────────────────────────────────
+# ── Logs & Crash / Memory Dumps (May contain sensitive in-memory data)
 *.log
+*.hprof
 hs_err_pid*
 replay_pid*
+firebase-debug.log
 
 # ── Kotlin & AGP Caches ───────────────────────────────────────────────
 .kotlin/

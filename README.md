@@ -11,6 +11,7 @@ This repository documents and showcases the weekly production-grade Android deve
 | **01** | [**Task 1: SyncTask**](./Task-1) <br> *(Advanced Task Management)* | • WorkManager Reminder Notifications <br>• Dual-direction Swipe Actions & Haptics <br>• Canvas Stats Progress Ring & Analytics <br>• Particle Celebration Burst Effects | **Clean Architecture + MVVM** <br>Jetpack Compose, Dagger Hilt, Room DB, WorkManager, Coroutines & Flow |
 | **02** | [**Task 2: WGM Quiz**](./Task-2) <br> *(Who's Gonna Be Millionaire)* | • 15-Tier Dynamic Money Ladder (₹1K – ₹7Cr) <br>• Complete 4-Lifeline Engine (50:50, Poll, Flip, Life) <br>• Triple MediaPlayer + SoundPool Audio Architecture <br>• Custom Hexagonal Geometry & Glowing UI <br>• Animated Splash Screen & Iconic Home Theme | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose, Room DB v2, StateFlow, SoundPool + Triple MediaPlayer, DataStore |
 | **03** | [**Task 3: DeshNews 24/7**](./Task-3) <br> *(Broadcast TV News App)* | • High-Contrast Indian TV Studio Aesthetic (#0A0E17, #DC2626, #FACC15) <br>• Dual-Tone DeshNews 24/7 Brand Badge & 3D Stage Carousel <br>• Native Jsoup Full-Text Web Extraction & In-App Reader <br>• Offline-First Room DB Caching with Offline Banner & Retry <br>• Collapsible Search with Custom Empty State & Settings Modal Sheet | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose M3, Dagger Hilt, Jsoup, Retrofit 2, Kotlinx Serialization, Room DB, Coil, StateFlow |
+| **04** | [**Task 4: NovaChat**](./Task-4) <br> *(Real-Time Cloud Messaging)* | • Warm Minimal Design Language (#FAF9F6, #1A6B5C, #E85D4A) <br>• Sub-second Firestore Chat with Room SQLite Offline-First Sync <br>• Dynamic 40-Bar Audio Waveform Voice Notes (MediaRecorder) <br>• Live Presence, Typing Indicators & Cluster-Aware Bubbles <br>• Inset-Safe Bottom Nav Shell & Full Profile Settings Suite | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose M3, Dagger Hilt, Cloud Firestore, Firebase Storage & Auth, Room SQLite, Coil, StateFlow |
 
 ---
 
@@ -51,12 +52,28 @@ An authentic, production-grade Android news application inspired by high-contras
 
 ---
 
+### 🔹 [Task 4: NovaChat — Production Real-Time Chat Application 💬](./Task-4)
+A production-grade real-time chat application for Android crafted with a Warm Minimal aesthetic, powered by Firebase and an offline-first Room database.
+- **Key Features:**
+  - **Warm Minimal Design Aesthetic:** Curated palette featuring warm off-white canvas (`#FAF9F6`), pure white surfaces (`#FFFFFF`), Deep Teal branding (`#1A6B5C`), Lighter Teal outgoing bubbles (`#1A8D7F`), and Coral accent badges (`#E85D4A`).
+  - **Real-Time 1-on-1 Messaging & Offline Sync:** Sub-second instant messaging powered by Cloud Firestore snapshot listeners paired with background Room SQLite database caching for instant cold starts.
+  - **Voice Notes with Dynamic Waveforms:** In-app audio recorder (`MediaRecorder`) generating real-time 40-bar dynamic amplitude audio waveforms with an interactive playback seek track via `MediaPlayer`.
+  - **Media Sharing & Attachments:** Cloud media upload to Firebase Storage with progressive Coil image loading and a 2×2 `AttachmentBottomSheet` (Gallery, Camera, File, Location).
+  - **Live Presence & Typing Engine:** Online presence automatically synchronized with the Android Activity lifecycle and debounced 2-second typing indicators.
+  - **Cluster-Aware Message Bubbles:** Modern rounded bubble shapes that smoothly group consecutive messages from the same sender.
+  - **Bottom Navigation & Settings Suite:** Inset-safe navigation between `Chats` and `Profile`, featuring profile avatar updates, bio editing, notifications toggle, privacy switches (Read Receipts, Last Seen, Bio Visibility), and secure sign-out dialogs.
+  - **Hardened Zero-Leak Security:** Multi-level git-ignored credential protection for `google-services.json`, keystores, and environment variables with a safe `google-services.json.example` template.
+- **Tech Stack:** Kotlin, Jetpack Compose Material 3, Dagger Hilt, Cloud Firestore, Firebase Storage, Firebase Auth, Room SQLite Database, Coil, StateFlow.
+- **Documentation:** Explore the full [Task-4 README](./Task-4/README.md).
+
+---
+
 ## 🛠️ Global Engineering Standards
 
 Across all tasks in this repository:
 - **Clean Architecture & Separation of Concerns:** Unidirectional Data Flow (UDF) with independent Data, Domain, and Presentation layers.
 - **100% Declarative UI:** Zero legacy XML layouts — built entirely with Jetpack Compose & Material 3 design tokens.
-- **Robust Persistence:** Offline-first architecture powered by Room Database and structured local storage.
+- **Robust Persistence & Cloud Integration:** Offline-first architecture powered by Room SQLite Database, Firebase Cloud Firestore, and structured local storage.
 - **Security & Cleanliness:** Production-ready `.gitignore` configurations protecting local environments, credentials, API keys, and build caches across all project submodules.
 
 ---

@@ -1,0 +1,145 @@
+# ====================================================================
+# Task-4: NovaChat — Android Project .gitignore
+# Covers: Secrets / Firebase / Keystores / Build / IDE / OS / Caches
+# ====================================================================
+
+# ── Confidential, Secrets & Sensitive API Keys ───────────────────────
+local.properties
+app/local.properties
+*/local.properties
+**/local.properties
+
+.env
+.env.*
+*.env
+secrets.properties
+app/secrets.properties
+*/secrets.properties
+**/secrets.properties
+private.properties
+**/private.properties
+secure.properties
+**/secure.properties
+keystore.properties
+**/keystore.properties
+signing.properties
+**/signing.properties
+release.properties
+**/release.properties
+
+# Google & Firebase Services Configuration (NEVER commit these)
+google-services.json
+*/google-services.json
+**/google-services.json
+app/google-services.json
+
+# API keys, tokens, service accounts & credentials
+credentials.json
+**/credentials.json
+service-account*.json
+**/service-account*.json
+client_secrets.json
+**/client_secrets.json
+auth_tokens.json
+**/auth_tokens.json
+jwt.json
+**/jwt.json
+*.key
+*.token
+*.credentials
+
+# Signing keystores & certificates (NEVER commit these)
+*.jks
+*.keystore
+*.p12
+*.pem
+*.cer
+*.crt
+*.p8
+*.mobileprovision
+
+# ── Gradle & Android Build Outputs ───────────────────────────────────
+build/
+app/build/
+*/build/
+**/build/
+.gradle/
+app/.gradle/
+*/.gradle/
+**/.gradle/
+.gradle_home/
+**/.gradle_home/
+
+# AGP intermediate directories
+app/src/main/generated/
+.cxx/
+**/.cxx/
+.externalNativeBuild/
+**/.externalNativeBuild/
+bin/
+gen/
+out/
+proguard/
+
+# KSP (Kotlin Symbol Processing) outputs
+**/build/generated/ksp/
+
+# Room Database Schema exports
+app/schemas/
+**/schemas/
+
+# ── Compiled & Packaged Artifacts ────────────────────────────────────
+*.apk
+*.aab
+*.aar
+*.ap_
+*.dex
+*.class
+
+# ── Android Studio / IntelliJ IDEA ───────────────────────────────────
+.idea/
+app/.idea/
+*/.idea/
+**/.idea/
+*.iml
+**/*.iml
+*.iws
+*.ipr
+captures/
+**/captures/
+.navigation/
+**/.navigation/
+
+# ── VS Code & Other Editors ───────────────────────────────────────────
+.vscode/
+**/.vscode/
+*.swp
+*.swo
+*~
+*.bak
+
+# ── OS & System Generated Files ───────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Logs & Crash / Memory Dumps (May contain sensitive data in RAM) ───
+*.log
+*.hprof
+hs_err_pid*
+replay_pid*
+firebase-debug.log
+
+# ── Kotlin & Gradle Caches ────────────────────────────────────────────
+.kotlin/
+**/.kotlin/
+kotlin-js-store/
+
+# Gradle wrapper verification files
+gradle/wrapper/gradle-wrapper.jar
+
