@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NovaChat</string>
+    <string name="auth_email_hint">Email Address</string>
+    <string name="auth_password_hint">Password</string>
+    <string name="auth_display_name_hint">Display Name</string>
+    <string name="auth_sign_in">Sign In</string>
+    <string name="auth_sign_up">Create Account</string>
+    <string name="auth_guest">Continue as Guest</string>
+    <string name="chat_list_title">NovaChat</string>
+    <string name="chat_room_typing">typing…</string>
+    <string name="chat_room_online">online</string>
+    <string name="message_placeholder">Message</string>
+    <string name="attachment_gallery">Gallery</string>
+    <string name="attachment_camera">Camera</string>
+    <string name="attachment_audio">Audio</string>
+    <string name="attachment_file">File</string>
+    <string name="attachment_location">Location</string>
+    <string name="attachment_poll">Poll</string>
+    <string name="voice_note_label">Voice message</string>
+    <string name="send_button">Send</string>
+    <string name="mic_button">Record voice</string>
+    <string name="recording_label">Recording…</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_not_authenticated">Please sign in to continue.</string>
+</resources>

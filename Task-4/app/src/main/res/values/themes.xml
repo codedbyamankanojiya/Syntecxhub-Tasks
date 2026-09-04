@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+        NovaChat Material 3 theme.
+        The app renders almost entirely in Compose — this XML theme is
+        applied only to the window background, status bar, and navigation bar
+        for edge-to-edge continuity before Compose draws its first frame.
+    -->
+    <style name="Theme.NovaChat" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Deep Twilight Slate window background — prevents white flash on cold start -->
+        <item name="android:windowBackground">@color/nc_canvas</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+
+        <!-- Edge-to-edge on Android 15+ -->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">false</item>
+    </style>
+</resources>

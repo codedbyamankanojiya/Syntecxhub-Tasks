@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- NovaChat Color Palette -->
+
+    <!-- Canvas / Background: Deep Twilight Slate -->
+    <color name="nc_canvas">#0E1621</color>
+
+    <!-- Top Bar & Input Dock: Solid Deep Navy -->
+    <color name="nc_navy">#17212B</color>
+
+    <!-- Incoming Message Bubbles: Dark Navy Slate -->
+    <color name="nc_slate">#182533</color>
+
+    <!-- Outgoing Message Bubbles: Rich Telegram Sapphire Blue -->
+    <color name="nc_sapphire">#2B5278</color>
+
+    <!-- Accent: Sky-Blue for active waveforms, ticks, FAB -->
+    <color name="nc_accent">#24A1DE</color>
+
+    <!-- Primary text: Pure white -->
+    <color name="nc_text_primary">#FFFFFF</color>
+
+    <!-- Secondary text: Muted blue-grey -->
+    <color name="nc_text_secondary">#8899A6</color>
+
+    <!-- Online presence indicator: Material Green -->
+    <color name="nc_online">#4CAF50</color>
+
+    <!-- Error / Recording: Vibrant pink-red -->
+    <color name="nc_error">#E0507A</color>
+
+    <!-- Border / Divider -->
+    <color name="nc_border">#2A3C50</color>
+
+    <!-- Attachment icon colors -->
+    <color name="nc_attach_gallery">#3D8BFF</color>
+    <color name="nc_attach_camera">#E0507A</color>
+    <color name="nc_attach_audio">#AA6FE0</color>
+    <color name="nc_attach_file">#4CAF50</color>
+    <color name="nc_attach_location">#FF8C42</color>
+    <color name="nc_attach_poll">#00BCD4</color>
+</resources>
