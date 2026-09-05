@@ -1,13 +1,13 @@
 package com.novachat.app.presentation.profile
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,15 +27,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.novachat.app.presentation.ui.theme.NovaChatColors
 import com.novachat.app.presentation.ui.theme.NovaChatTypography
+import com.novachat.app.presentation.ui.util.AvatarHelper
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,30 +53,19 @@ fun ProfileScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showSignOutDialog by remember { mutableStateOf(false) }
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var showPhotoDialog by remember { mutableStateOf(false) }
+    var showChangeEmailDialog by remember { mutableStateOf(false) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var avatarOptions by remember { mutableStateOf(AvatarHelper.generateRandomAvatars(12)) }
 
     var editedName by remember(uiState.user?.displayName) { mutableStateOf(uiState.user?.displayName ?: "") }
     var editedBio by remember(uiState.user?.bio) { mutableStateOf(uiState.user?.bio ?: "") }
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            val file = File(context.cacheDir, "temp_profile.jpg")
-            try {
-                context.contentResolver.openInputStream(it)?.use { input ->
-                    FileOutputStream(file).use { output -> input.copyTo(output) }
-                }
-                viewModel.updateProfilePicture(file)
-            } catch (e: Exception) {
-                scope.launch { snackbarHostState.showSnackbar("Failed to process image") }
-            }
-        }
-    }
-
-    // Fixed: only navigate out when user is null AND not loading
-    LaunchedEffect(uiState.user, uiState.isLoading) {
-        if (uiState.user == null && !uiState.isLoading) {
+    var hasNavigatedOut by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.isSignedOut) {
+        if (uiState.isSignedOut && !hasNavigatedOut) {
+            hasNavigatedOut = true
             onSignedOut()
         }
     }
@@ -116,37 +109,286 @@ fun ProfileScreen(
         )
     }
 
-    // ── Photo options dialog ──────────────────────────────────────────────────────
-    if (showPhotoDialog) {
+    // ── Delete Account confirmation dialog ────────────────────────────────────────
+    if (showDeleteAccountDialog) {
         AlertDialog(
-            onDismissRequest = { showPhotoDialog = false },
-            title = { Text("Profile Photo", style = NovaChatTypography.TitleMedium) },
+            onDismissRequest = { showDeleteAccountDialog = false },
+            title = { Text("Delete Account", style = NovaChatTypography.TitleMedium, color = Color(0xFFE53935)) },
             text = {
                 Text(
-                    "Update or remove your profile picture.",
-                    style = NovaChatTypography.BodyMedium,
-                    color = NovaChatColors.TextSecondary
+                    "Are you sure you want to delete your account? This action is permanent and will completely delete your profile and chats.",
+                    style = NovaChatTypography.BodyMedium
                 )
             },
             confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteAccountDialog = false
+                        viewModel.deleteAccount()
+                    }
+                ) {
+                    Text("Delete Account", color = Color(0xFFE53935), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAccountDialog = false }) {
+                    Text("Cancel", color = NovaChatColors.TextSecondary)
+                }
+            },
+            containerColor = NovaChatColors.Surface
+        )
+    }
+
+    // ── Change Email Dialog ──────────────────────────────────────────────────────
+    if (showChangeEmailDialog) {
+        var newEmail by remember { mutableStateOf("") }
+        var currentPassword by remember { mutableStateOf("") }
+        var passwordVisible by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { showChangeEmailDialog = false },
+            title = { Text("Change Email", style = NovaChatTypography.TitleMedium) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Current Email: ${uiState.user?.email ?: "None"}",
+                        style = NovaChatTypography.BodySmall,
+                        color = NovaChatColors.TextSecondary
+                    )
+                    OutlinedTextField(
+                        value = newEmail,
+                        onValueChange = { newEmail = it },
+                        label = { Text("New Email Address") },
+                        placeholder = { Text("ayush.sharma@example.com") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    )
+                    OutlinedTextField(
+                        value = currentPassword,
+                        onValueChange = { currentPassword = it },
+                        label = { Text("Current Password") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.changeEmail(newEmail, currentPassword) {
+                            showChangeEmailDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NovaChatColors.Primary),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = newEmail.isNotBlank() && currentPassword.isNotBlank() && !uiState.isUpdating
+                ) {
+                    if (uiState.isUpdating) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Update Email")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showChangeEmailDialog = false }) {
+                    Text("Cancel", color = NovaChatColors.TextSecondary)
+                }
+            },
+            containerColor = NovaChatColors.Surface
+        )
+    }
+
+    // ── Change Password Dialog ──────────────────────────────────────────────────
+    if (showChangePasswordDialog) {
+        var currentPassword by remember { mutableStateOf("") }
+        var newPassword by remember { mutableStateOf("") }
+        var confirmPassword by remember { mutableStateOf("") }
+        var currentPasswordVisible by remember { mutableStateOf(false) }
+        var newPasswordVisible by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { showChangePasswordDialog = false },
+            title = { Text("Change Password", style = NovaChatTypography.TitleMedium) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = currentPassword,
+                        onValueChange = { currentPassword = it },
+                        label = { Text("Current Password") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        visualTransformation = if (currentPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            IconButton(onClick = { currentPasswordVisible = !currentPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (currentPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    )
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("New Password (min 6 chars)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (newPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    )
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = { Text("Confirm New Password") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                    )
+                    if (newPassword.isNotEmpty() && confirmPassword.isNotEmpty() && newPassword != confirmPassword) {
+                        Text("Passwords do not match", color = Color(0xFFE53935), style = NovaChatTypography.BodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.changePassword(currentPassword, newPassword) {
+                            showChangePasswordDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NovaChatColors.Primary),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = currentPassword.isNotBlank() && newPassword.length >= 6 && newPassword == confirmPassword && !uiState.isUpdating
+                ) {
+                    if (uiState.isUpdating) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Update Password")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showChangePasswordDialog = false }) {
+                    Text("Cancel", color = NovaChatColors.TextSecondary)
+                }
+            },
+            containerColor = NovaChatColors.Surface
+        )
+    }
+
+    // ── Photo options & Avatar selection dialog ──────────────────────────────────
+    if (showPhotoDialog) {
+        AlertDialog(
+            onDismissRequest = { showPhotoDialog = false },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Select Avatar", style = NovaChatTypography.TitleMedium)
+                    TextButton(
+                        onClick = {
+                            avatarOptions = AvatarHelper.generateRandomAvatars(12)
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Randomize",
+                            modifier = Modifier.size(16.dp),
+                            tint = NovaChatColors.Primary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Randomize", style = NovaChatTypography.LabelMedium, color = NovaChatColors.Primary)
+                    }
+                }
+            },
+            text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Button(
-                        onClick = {
-                            showPhotoDialog = false
-                            launcher.launch("image/*")
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = NovaChatColors.Primary)
+                    Text(
+                        text = "Tap an avatar to set it as your profile picture:",
+                        style = NovaChatTypography.BodySmall,
+                        color = NovaChatColors.TextSecondary
+                    )
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 220.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Choose from Gallery")
+                        items(avatarOptions) { avatarUrl ->
+                            val isSelected = avatarUrl == uiState.user?.photoUrl
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(NovaChatColors.SurfaceVariant)
+                                    .border(
+                                        width = if (isSelected) 3.dp else 1.dp,
+                                        color = if (isSelected) NovaChatColors.Primary else NovaChatColors.Divider,
+                                        shape = CircleShape
+                                    )
+                                    .clickable {
+                                        showPhotoDialog = false
+                                        viewModel.updateProfilePictureUrl(avatarUrl)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                SubcomposeAsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(avatarUrl)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Avatar option",
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = ContentScale.Crop,
+                                    loading = {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = NovaChatColors.Primary
+                                        )
+                                    }
+                                )
+                            }
+                        }
                     }
 
                     if (!uiState.user?.photoUrl.isNullOrEmpty()) {
+                        HorizontalDivider(color = NovaChatColors.Divider)
                         OutlinedButton(
                             onClick = {
                                 showPhotoDialog = false
@@ -160,13 +402,11 @@ fun ProfileScreen(
                             Text("Remove Photo", color = Color.Red)
                         }
                     }
-
-                    TextButton(
-                        onClick = { showPhotoDialog = false },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("Cancel", color = NovaChatColors.TextSecondary)
-                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPhotoDialog = false }) {
+                    Text("Close", color = NovaChatColors.TextSecondary)
                 }
             },
             containerColor = NovaChatColors.Surface
@@ -369,6 +609,106 @@ fun ProfileScreen(
                 shape = RoundedCornerShape(20.dp),
                 color = NovaChatColors.Surface,
                 shadowElevation = 2.dp,
+                onClick = { showChangeEmailDialog = true }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(NovaChatColors.Primary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Email,
+                            contentDescription = null,
+                            tint = NovaChatColors.Primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Change Email",
+                            style = NovaChatTypography.TitleMedium,
+                            color = NovaChatColors.TextPrimary
+                        )
+                        Text(
+                            text = uiState.user?.email ?: "No email set",
+                            style = NovaChatTypography.BodySmall,
+                            color = NovaChatColors.TextSecondary
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = NovaChatColors.TextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = NovaChatColors.Surface,
+                shadowElevation = 2.dp,
+                onClick = { showChangePasswordDialog = true }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(NovaChatColors.Primary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = NovaChatColors.Primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Change Password",
+                        style = NovaChatTypography.TitleMedium,
+                        color = NovaChatColors.TextPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = NovaChatColors.TextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = NovaChatColors.Surface,
+                shadowElevation = 2.dp,
                 onClick = { showSignOutDialog = true }
             ) {
                 Row(
@@ -396,6 +736,53 @@ fun ProfileScreen(
                         text = "Sign Out",
                         style = NovaChatTypography.TitleMedium,
                         color = NovaChatColors.Accent
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = NovaChatColors.TextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = NovaChatColors.Surface,
+                shadowElevation = 2.dp,
+                onClick = { showDeleteAccountDialog = true }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFE53935).copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteForever,
+                            contentDescription = null,
+                            tint = Color(0xFFE53935),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Delete Account",
+                        style = NovaChatTypography.TitleMedium,
+                        color = Color(0xFFE53935)
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     Icon(
@@ -451,18 +838,24 @@ private fun ProfileHeader(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(photoUrl)
                             .crossfade(true)
+                            .memoryCachePolicy(CachePolicy.DISABLED)
+                            .diskCachePolicy(CachePolicy.DISABLED)
                             .build(),
                         contentDescription = "Profile picture",
                         modifier = Modifier.fillMaxSize().clip(CircleShape),
                         contentScale = ContentScale.Crop,
                         loading = {
                             Box(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.linearGradient(listOf(NovaChatColors.Primary, NovaChatColors.PrimaryContainer))
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(32.dp),
-                                    color = NovaChatColors.Primary,
+                                    color = Color.White,
                                     strokeWidth = 2.dp
                                 )
                             }
