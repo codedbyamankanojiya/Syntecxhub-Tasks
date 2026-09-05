@@ -51,6 +51,10 @@ data class MessageDto(
     @set:PropertyName("isRead")
     var isRead: Boolean = false,
 
+    @get:PropertyName("isDelivered")
+    @set:PropertyName("isDelivered")
+    var isDelivered: Boolean = false,
+
     @get:PropertyName("voiceAmplitudes")
     @set:PropertyName("voiceAmplitudes")
     var voiceAmplitudes: List<Double> = emptyList(),
@@ -99,6 +103,7 @@ data class MessageDto(
             type = runCatching { MessageType.valueOf(type) }.getOrDefault(MessageType.TEXT),
             timestamp = timestamp?.time ?: System.currentTimeMillis(),
             isRead = isRead,
+            isDelivered = isDelivered,
             isSentByMe = senderId == currentUserId,
             voiceAmplitudes = voiceAmplitudes.map { it.toFloat() },
             voiceDurationMs = voiceDurationMs,
@@ -124,6 +129,7 @@ data class MessageDto(
             content = message.content,
             type = message.type.name,
             isRead = message.isRead,
+            isDelivered = message.isDelivered,
             voiceAmplitudes = message.voiceAmplitudes.map { it.toDouble() },
             voiceDurationMs = message.voiceDurationMs,
             fileName = message.fileName,

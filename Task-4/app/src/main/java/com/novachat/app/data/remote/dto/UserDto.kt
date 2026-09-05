@@ -65,6 +65,10 @@ data class UserDto(
     @set:PropertyName("isAnonymous")
     var isAnonymous: Boolean = false,
 
+    @get:PropertyName("isDeleted")
+    @set:PropertyName("isDeleted")
+    var isDeleted: Boolean = false,
+
     @get:PropertyName("fcmToken")
     @set:PropertyName("fcmToken")
     var fcmToken: String? = null
@@ -82,7 +86,8 @@ data class UserDto(
         notificationsEnabled = notificationsEnabled,
         lastSeenVisible = lastSeenVisible,
         aboutVisible = aboutVisible,
-        isAnonymous = isAnonymous
+        isAnonymous = isAnonymous,
+        isDeleted = isDeleted
     )
 
     companion object {
@@ -93,7 +98,8 @@ data class UserDto(
             email = user.email,
             photoUrl = user.photoUrl,
             isOnline = user.isOnline,
-            isAnonymous = user.isAnonymous
+            isAnonymous = user.isAnonymous,
+            isDeleted = user.isDeleted
         )
     }
 }

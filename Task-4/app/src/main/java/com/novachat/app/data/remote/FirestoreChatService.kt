@@ -56,7 +56,12 @@ class FirestoreChatService @Inject constructor(
             ?: run { trySend(null); close(); return@callbackFlow }
 
         val listener = usersRef.document(uid).addSnapshotListener { snap, err ->
-            if (err != null) { close(err); return@addSnapshotListener }
+            if (err != null) {
+                android.util.Log.w("FirestoreChatService", "observeCurrentUser error or signed out: ${err.message}")
+                trySend(null)
+                close()
+                return@addSnapshotListener
+            }
             trySend(snap?.toObject(UserDto::class.java))
         }
         awaitClose { listener.remove() }
@@ -67,7 +72,12 @@ class FirestoreChatService @Inject constructor(
      */
     fun observeUser(uid: String): Flow<UserDto?> = callbackFlow {
         val listener = usersRef.document(uid).addSnapshotListener { snap, err ->
-            if (err != null) { close(err); return@addSnapshotListener }
+            if (err != null) {
+                android.util.Log.w("FirestoreChatService", "observeUser error: ${err.message}")
+                trySend(null)
+                close()
+                return@addSnapshotListener
+            }
             trySend(snap?.toObject(UserDto::class.java))
         }
         awaitClose { listener.remove() }
@@ -84,33 +94,55 @@ class FirestoreChatService @Inject constructor(
 
     /**
      * Fetches a user profile by [uid] — one-shot, not a stream.
+     * Tries fetching directly from server first to prevent stale cached displayNames.
      */
     suspend fun getUser(uid: String): UserDto? =
-        usersRef.document(uid).get().await().toObject(UserDto::class.java)
+        try {
+            usersRef.document(uid).get(com.google.firebase.firestore.Source.SERVER).await().toObject(UserDto::class.java)
+        } catch (_: Exception) {
+            usersRef.document(uid).get().await().toObject(UserDto::class.java)
+        }
+
+    /**
+     * Marks the user document as deleted with "Deleted User" identity in Firestore.
+     */
+    suspend fun markUserDeleted(uid: String) {
+        val updates = mapOf(
+            "displayName" to "Deleted User",
+            "displayNameLowercase" to "deleted user",
+            "photoUrl" to null,
+            "bio" to "This account has been deleted.",
+            "isOnline" to false,
+            "isDeleted" to true
+        )
+        usersRef.document(uid).set(updates, SetOptions.merge()).await()
+    }
 
     /**
      * Searches users whose displayName starts with [query] (case-insensitive prefix).
-     * Returns all available users if query is empty.
+     * Returns all available active users if query is empty.
      */
     suspend fun searchUsers(query: String): List<UserDto> {
         val lowercaseQuery = query.lowercase().trim()
-        if (lowercaseQuery.isEmpty()) {
-            return usersRef
+        val users = if (lowercaseQuery.isEmpty()) {
+            usersRef
+                .limit(30)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject(UserDto::class.java) }
+        } else {
+            val end = lowercaseQuery + '\uF8FF'
+            usersRef
+                .whereGreaterThanOrEqualTo("displayNameLowercase", lowercaseQuery)
+                .whereLessThan("displayNameLowercase", end)
                 .limit(30)
                 .get()
                 .await()
                 .documents
                 .mapNotNull { it.toObject(UserDto::class.java) }
         }
-        val end = lowercaseQuery + '\uF8FF'
-        return usersRef
-            .whereGreaterThanOrEqualTo("displayNameLowercase", lowercaseQuery)
-            .whereLessThan("displayNameLowercase", end)
-            .limit(30)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { it.toObject(UserDto::class.java) }
+        return users.filter { !it.isDeleted && it.displayName != "Deleted User" }
     }
 
     // ─── Chat / Conversation operations ──────────────────────────────────────
@@ -125,8 +157,9 @@ class FirestoreChatService @Inject constructor(
             .whereArrayContains("participantIds", uid)
             .addSnapshotListener { snap, err ->
                 if (err != null) {
-                    android.util.Log.e("FirestoreChatService", "Error observing chats for uid=$uid", err)
-                    close(err)
+                    android.util.Log.w("FirestoreChatService", "Error observing chats for uid=$uid: ${err.message}")
+                    trySend(emptyList())
+                    close()
                     return@addSnapshotListener
                 }
                 val docs = snap?.documents?.mapNotNull { doc ->
@@ -185,8 +218,9 @@ class FirestoreChatService @Inject constructor(
         val listener = messagesRef(chatId)
             .addSnapshotListener { snap, err ->
                 if (err != null) {
-                    android.util.Log.e("FirestoreChatService", "Error observing messages for $chatId", err)
-                    close(err)
+                    android.util.Log.w("FirestoreChatService", "Error observing messages for $chatId: ${err.message}")
+                    trySend(emptyList())
+                    close()
                     return@addSnapshotListener
                 }
                 val messages = snap?.documents?.mapNotNull { doc ->
@@ -226,6 +260,7 @@ class FirestoreChatService @Inject constructor(
         )
         if (!otherId.isNullOrEmpty()) {
             updates["unreadCount.$otherId"] = com.google.firebase.firestore.FieldValue.increment(1)
+            updates["unreadCount"] = mapOf(otherId to com.google.firebase.firestore.FieldValue.increment(1))
         }
 
         firestore.runBatch { batch ->
@@ -249,22 +284,49 @@ class FirestoreChatService @Inject constructor(
             .documents
             .filter { doc -> doc.getString("senderId") != currentUserId }
 
+        val resetUpdates = mapOf<String, Any>(
+            "unreadCount.$currentUserId" to 0L,
+            "unreadCount" to mapOf(currentUserId to 0L)
+        )
+
         if (unreadDocs.isNotEmpty()) {
             firestore.runBatch { batch ->
-                unreadDocs.forEach { doc -> batch.update(doc.reference, "isRead", true) }
+                unreadDocs.forEach { doc ->
+                    batch.update(doc.reference, mapOf("isRead" to true, "isDelivered" to true))
+                }
                 // Reset unread count for current user
                 batch.set(
                     chatsRef.document(chatId),
-                    mapOf("unreadCount.$currentUserId" to 0L),
+                    resetUpdates,
                     SetOptions.merge()
                 )
             }.await()
         } else {
             // Reset unread count even if no unread docs returned
             chatsRef.document(chatId).set(
-                mapOf("unreadCount.$currentUserId" to 0L),
+                resetUpdates,
                 SetOptions.merge()
             ).await()
+        }
+    }
+
+    /**
+     * Marks all undelivered messages in [chatId] sent by someone else as delivered.
+     */
+    suspend fun markMessagesAsDelivered(chatId: String, currentUserId: String) {
+        val undeliveredDocs = messagesRef(chatId)
+            .whereEqualTo("isDelivered", false)
+            .get()
+            .await()
+            .documents
+            .filter { doc -> doc.getString("senderId") != currentUserId }
+
+        if (undeliveredDocs.isNotEmpty()) {
+            firestore.runBatch { batch ->
+                undeliveredDocs.forEach { doc ->
+                    batch.update(doc.reference, "isDelivered", true)
+                }
+            }.await()
         }
     }
 
@@ -318,12 +380,55 @@ class FirestoreChatService @Inject constructor(
     }
 
     /**
+     * Propagates a new display name to participantNames in all chats where current user participates.
+     */
+    suspend fun propagateNameToChats(newDisplayName: String) {
+        val uid = currentUid() ?: return
+        val snap = try {
+            chatsRef.whereArrayContains("participantIds", uid)
+                .get(com.google.firebase.firestore.Source.SERVER).await()
+        } catch (_: Exception) {
+            try {
+                chatsRef.whereArrayContains("participantIds", uid).get().await()
+            } catch (e: Exception) {
+                android.util.Log.e("FirestoreChatService", "Failed to query chats for name propagation", e)
+                return
+            }
+        }
+
+        if (snap.isEmpty) return
+
+        try {
+            firestore.runBatch { batch ->
+                for (doc in snap.documents) {
+                    val participantIds = doc.get("participantIds") as? List<*> ?: continue
+                    val participantNames = (doc.get("participantNames") as? List<*>)
+                        ?.map { it?.toString() ?: "" }?.toMutableList() ?: mutableListOf()
+                    val index = participantIds.indexOf(uid)
+                    if (index != -1) {
+                        while (participantNames.size <= index) {
+                            participantNames.add("")
+                        }
+                        participantNames[index] = newDisplayName
+                        batch.set(doc.reference, mapOf("participantNames" to participantNames), SetOptions.merge())
+                    }
+                }
+            }.await()
+        } catch (e: Exception) {
+            android.util.Log.e("FirestoreChatService", "Failed to batch update participantNames", e)
+        }
+    }
+
+    /**
      * Updates the current user's profile picture URL.
      */
     suspend fun updateProfilePicture(url: String) {
         val uid = currentUid() ?: return
-        val value: Any? = if (url.isBlank()) null else url
-        usersRef.document(uid).update("photoUrl", value).await()
+        if (url.isBlank()) {
+            usersRef.document(uid).update("photoUrl", com.google.firebase.firestore.FieldValue.delete()).await()
+        } else {
+            usersRef.document(uid).update("photoUrl", url).await()
+        }
     }
 
     /**
