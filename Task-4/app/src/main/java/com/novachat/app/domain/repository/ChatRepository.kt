@@ -133,6 +133,12 @@ interface ChatRepository {
     suspend fun signOut()
 
     /**
+     * Permanently deletes the current user's account, removes Firestore data,
+     * clears local database cache, and deletes the Firebase Auth account.
+     */
+    suspend fun deleteAccount(): Result<Unit>
+
+    /**
      * Returns the currently authenticated user's UID, or null if not signed in.
      */
     fun getCurrentUserId(): String?
@@ -141,6 +147,26 @@ interface ChatRepository {
      * True if a user is currently authenticated (including anonymous sessions).
      */
     fun isAuthenticated(): Boolean
+
+    /**
+     * Sends a password reset email link to [email].
+     */
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit>
+
+    /**
+     * Changes the user's password after re-authenticating with [currentPassword].
+     */
+    suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit>
+
+    /**
+     * Changes the user's email after re-authenticating with [currentPassword].
+     */
+    suspend fun changeEmail(newEmail: String, currentPassword: String): Result<Unit>
+
+    /**
+     * Marks all messages in [chatId] sent by others as delivered.
+     */
+    suspend fun markMessagesAsDelivered(chatId: String): Result<Unit>
 
     /**
      * Signs in as an anonymous guest. Returns the ephemeral [User].

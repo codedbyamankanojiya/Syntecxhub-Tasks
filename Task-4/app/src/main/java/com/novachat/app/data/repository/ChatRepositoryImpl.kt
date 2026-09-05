@@ -146,6 +146,32 @@ class ChatRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun deleteAccount(): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val uid = getCurrentUserId() ?: error("Not authenticated")
+
+            // 1. Mark user in Firestore as deleted with "Deleted User" identity
+            runCatching { firestoreService.markUserDeleted(uid) }
+
+            // 2. Propagate "Deleted User" to all conversation documents
+            runCatching { firestoreService.propagateNameToChats("Deleted User") }
+
+            // 3. Clear local Room database cache
+            messageDao.clearAll()
+
+            // 4. Delete Firebase Auth account
+            val currentUser = auth.currentUser
+            if (currentUser != null) {
+                runCatching { currentUser.delete().await() }
+            }
+
+            // 5. Unconditionally sign out so session is completely cleared on device
+            auth.signOut()
+
+            Unit
+        }
+    }
+
     // ─── User ─────────────────────────────────────────────────────────────────
 
     override fun observeCurrentUser(): Flow<User?> =
@@ -172,6 +198,9 @@ class ChatRepositoryImpl @Inject constructor(
 
                 // Update Firestore profile
                 firestoreService.updateProfile(displayName, bio)
+
+                // Propagate updated name to existing chats
+                firestoreService.propagateNameToChats(displayName)
             }
         }
 
@@ -288,9 +317,11 @@ class ChatRepositoryImpl @Inject constructor(
                         if (otherUserId.isNotEmpty()) firestoreService.getUser(otherUserId) else null
                     }.getOrNull()
 
+                    val isDeletedUser = otherUser?.isDeleted == true || otherUser?.displayName == "Deleted User"
                     val otherUserNameFallback = participantNames.getOrNull(otherIndex)?.takeIf { it.isNotBlank() } ?: "User"
-                    val resolvedName = otherUser?.displayName?.takeIf { it.isNotBlank() } ?: otherUserNameFallback
-                    val resolvedAvatar = otherUser?.photoUrl?.takeIf { it.isNotBlank() }
+                    val resolvedName = if (isDeletedUser) "Deleted User" else (otherUser?.displayName?.takeIf { it.isNotBlank() } ?: otherUserNameFallback)
+                    val resolvedAvatar = if (isDeletedUser) null else otherUser?.photoUrl?.takeIf { it.isNotBlank() }
+                    val isOnline = if (isDeletedUser) false else (otherUser?.isOnline ?: false)
 
                     val lastMsgTime = when (val ts = data["lastMessageTime"]) {
                         is com.google.firebase.Timestamp -> ts.toDate().time
@@ -298,8 +329,10 @@ class ChatRepositoryImpl @Inject constructor(
                         else -> 0L
                     }
 
-                    val unreadCount = when (val count = (data["unreadCount"] as? Map<*, *>)?.get(currentUid)) {
-                        is Number -> count.toInt()
+                    val rawUnread = (data["unreadCount"] as? Map<*, *>)?.get(currentUid)
+                        ?: data["unreadCount.$currentUid"]
+                    val unreadCount = when (rawUnread) {
+                        is Number -> rawUnread.toInt()
                         else -> 0
                     }
 
@@ -309,7 +342,7 @@ class ChatRepositoryImpl @Inject constructor(
                         participantNames = participantNames,
                         otherUserName = resolvedName,
                         otherUserAvatar = resolvedAvatar,
-                        otherUserOnline = otherUser?.isOnline ?: false,
+                        otherUserOnline = isOnline,
                         lastMessage = data["lastMessage"] as? String ?: "",
                         lastMessageTime = lastMsgTime,
                         unreadCount = unreadCount,
@@ -364,6 +397,10 @@ class ChatRepositoryImpl @Inject constructor(
                         MessageEntity.fromDomain(dto.toDomain(currentUid))
                     }
                     messageDao.upsertMessages(entities)
+
+                    if (currentUid.isNotEmpty() && dtos.any { it.senderId != currentUid && !it.isDelivered }) {
+                        firestoreService.markMessagesAsDelivered(chatId, currentUid)
+                    }
                 }
         }
 
@@ -498,4 +535,56 @@ class ChatRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    override suspend fun sendPasswordResetEmail(email: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                auth.sendPasswordResetEmail(email).await()
+                Unit
+            }
+        }
+
+    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val user = auth.currentUser ?: error("Not authenticated")
+                val email = user.email ?: error("No email associated with account")
+                val credential = com.google.firebase.auth.EmailAuthProvider.getCredential(email, currentPassword)
+                user.reauthenticate(credential).await()
+                user.updatePassword(newPassword).await()
+                Unit
+            }
+        }
+
+    override suspend fun changeEmail(newEmail: String, currentPassword: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val user = auth.currentUser ?: error("Not authenticated")
+                val oldEmail = user.email ?: error("No email associated with account")
+                val credential = com.google.firebase.auth.EmailAuthProvider.getCredential(oldEmail, currentPassword)
+                user.reauthenticate(credential).await()
+
+                try {
+                    user.verifyBeforeUpdateEmail(newEmail).await()
+                } catch (e: NoSuchMethodError) {
+                    @Suppress("DEPRECATION")
+                    user.updateEmail(newEmail).await()
+                } catch (e: Exception) {
+                    @Suppress("DEPRECATION")
+                    runCatching { user.updateEmail(newEmail).await() }.getOrThrow()
+                }
+
+                firestoreService.updateUserField("email", newEmail)
+                Unit
+            }
+        }
+
+    override suspend fun markMessagesAsDelivered(chatId: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val uid = getCurrentUserId() ?: error("Not authenticated")
+                firestoreService.markMessagesAsDelivered(chatId, uid)
+                Unit
+            }
+        }
 }
