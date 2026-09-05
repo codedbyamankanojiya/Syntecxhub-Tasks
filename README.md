@@ -11,7 +11,7 @@ This repository documents and showcases the weekly production-grade Android deve
 | **01** | [**Task 1: SyncTask**](./Task-1) <br> *(Advanced Task Management)* | • WorkManager Reminder Notifications <br>• Dual-direction Swipe Actions & Haptics <br>• Canvas Stats Progress Ring & Analytics <br>• Particle Celebration Burst Effects | **Clean Architecture + MVVM** <br>Jetpack Compose, Dagger Hilt, Room DB, WorkManager, Coroutines & Flow |
 | **02** | [**Task 2: WGM Quiz**](./Task-2) <br> *(Who's Gonna Be Millionaire)* | • 15-Tier Dynamic Money Ladder (₹1K – ₹7Cr) <br>• Complete 4-Lifeline Engine (50:50, Poll, Flip, Life) <br>• Triple MediaPlayer + SoundPool Audio Architecture <br>• Custom Hexagonal Geometry & Glowing UI <br>• Animated Splash Screen & Iconic Home Theme | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose, Room DB v2, StateFlow, SoundPool + Triple MediaPlayer, DataStore |
 | **03** | [**Task 3: DeshNews 24/7**](./Task-3) <br> *(Broadcast TV News App)* | • High-Contrast Indian TV Studio Aesthetic (#0A0E17, #DC2626, #FACC15) <br>• Dual-Tone DeshNews 24/7 Brand Badge & 3D Stage Carousel <br>• Native Jsoup Full-Text Web Extraction & In-App Reader <br>• Offline-First Room DB Caching with Offline Banner & Retry <br>• Collapsible Search with Custom Empty State & Settings Modal Sheet | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose M3, Dagger Hilt, Jsoup, Retrofit 2, Kotlinx Serialization, Room DB, Coil, StateFlow |
-| **04** | [**Task 4: NovaChat**](./Task-4) <br> *(Real-Time Cloud Messaging)* | • Warm Minimal Design Language (#FAF9F6, #1A6B5C, #E85D4A) <br>• Sub-second Firestore Chat with Room SQLite Offline-First Sync <br>• Dynamic 40-Bar Audio Waveform Voice Notes (MediaRecorder) <br>• Live Presence, Typing Indicators & Cluster-Aware Bubbles <br>• Inset-Safe Bottom Nav Shell & Full Profile Settings Suite | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose M3, Dagger Hilt, Cloud Firestore, Firebase Storage & Auth, Room SQLite, Coil, StateFlow |
+| **04** | [**Task 4: NovaChat**](./Task-4) <br> *(Real-Time Cloud Messaging)* | • Pure Email/Password Auth & Reset Flow <br>• Sub-second Firestore Chat + Room Offline Sync <br>• 3-Stage Read Receipts (Sent, Delivered, Blue Read) <br>• 12-Avatar Grid System & Live Name Sync <br>• Unread Blips, Navigation Badges & Push Notifications <br>• Account Deletion & Disabled State Protection | **Clean Architecture + MVVM (UDF)** <br>100% Jetpack Compose M3, Dagger Hilt, Cloud Firestore, Firebase Auth, Room SQLite, Coil, StateFlow |
 
 ---
 
@@ -53,17 +53,19 @@ An authentic, production-grade Android news application inspired by high-contras
 ---
 
 ### 🔹 [Task 4: NovaChat — Production Real-Time Chat Application 💬](./Task-4)
-A production-grade real-time chat application for Android crafted with a Warm Minimal aesthetic, powered by Firebase and an offline-first Room database.
+A production-grade real-time chat application for Android crafted with a Warm Minimal aesthetic, powered by Firebase Cloud Firestore, Firebase Authentication, and an offline-first Room SQLite database.
 - **Key Features:**
-  - **Warm Minimal Design Aesthetic:** Curated palette featuring warm off-white canvas (`#FAF9F6`), pure white surfaces (`#FFFFFF`), Deep Teal branding (`#1A6B5C`), Lighter Teal outgoing bubbles (`#1A8D7F`), and Coral accent badges (`#E85D4A`).
+  - **Warm Minimal Design Aesthetic:** Curated palette featuring warm off-white canvas (`#FAF9F6`), pure white surfaces (`#FFFFFF`), Deep Teal branding (`#1A6B5C`), Lighter Teal outgoing bubbles (`#1A8D7F`), Cyan-Blue read indicators (`#0288D1`), and Coral accent badges (`#E85D4A`).
+  - **Pure Email/Password Authentication & Password Reset:** Secure email/password login and registration with live input validation, dedicated Forgot Password reset email dispatch, and in-app Change Password & Change Email with secure credential re-authentication.
   - **Real-Time 1-on-1 Messaging & Offline Sync:** Sub-second instant messaging powered by Cloud Firestore snapshot listeners paired with background Room SQLite database caching for instant cold starts.
-  - **Voice Notes with Dynamic Waveforms:** In-app audio recorder (`MediaRecorder`) generating real-time 40-bar dynamic amplitude audio waveforms with an interactive playback seek track via `MediaPlayer`.
-  - **Media Sharing & Attachments:** Cloud media upload to Firebase Storage with progressive Coil image loading and a 2×2 `AttachmentBottomSheet` (Gallery, Camera, File, Location).
+  - **3-Stage WhatsApp-Style Read Receipts:** Comprehensive real-time delivery lifecycle — Single white tick (Sent to server), Double white ticks (Delivered to recipient's device), and Double cyan-blue ticks (Read/seen by recipient).
+  - **Intelligent Unread Alerting & Notifications:** Unread message blip dots on conversation avatars, bold unread preview typography, coral badge pill count, bottom navigation bar unread counter, and Android push/local notifications with high-importance heads-up banners and direct room routing.
+  - **Avatar System & Real-Time Identity Sync:** 12-avatar randomized avatar generator with rich color gradients, instant Firestore synchronization, and global display name updates across all chat headers and conversation records.
+  - **Account Deletion & Disabled Partner Handling:** Complete account purge (deleting Firestore user profile and Firebase Auth account) with immediate logout back to sign-in; conversation partners automatically see "Deleted User" with disabled message input.
   - **Live Presence & Typing Engine:** Online presence automatically synchronized with the Android Activity lifecycle and debounced 2-second typing indicators.
   - **Cluster-Aware Message Bubbles:** Modern rounded bubble shapes that smoothly group consecutive messages from the same sender.
-  - **Bottom Navigation & Settings Suite:** Inset-safe navigation between `Chats` and `Profile`, featuring profile avatar updates, bio editing, notifications toggle, privacy switches (Read Receipts, Last Seen, Bio Visibility), and secure sign-out dialogs.
-  - **Hardened Zero-Leak Security:** Multi-level git-ignored credential protection for `google-services.json`, keystores, and environment variables with a safe `google-services.json.example` template.
-- **Tech Stack:** Kotlin, Jetpack Compose Material 3, Dagger Hilt, Cloud Firestore, Firebase Storage, Firebase Auth, Room SQLite Database, Coil, StateFlow.
+  - **Hardened Zero-Leak Security & Deployment-Ready:** Multi-level git-ignored credential protection for `google-services.json`, keystores, and environment variables with ProGuard/R8 optimization rules and production-ready Gradle release builds.
+- **Tech Stack:** Kotlin, Jetpack Compose Material 3, Dagger Hilt, Cloud Firestore, Firebase Auth, Room SQLite Database, Coil, StateFlow.
 - **Documentation:** Explore the full [Task-4 README](./Task-4/README.md).
 
 ---

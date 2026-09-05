@@ -129,6 +129,7 @@ firebase-debug.log
 **/.kotlin/
 kotlin-js-store/
 
-# Gradle wrapper verification files
-gradle/wrapper/gradle-wrapper.jar
+# Ensure Gradle wrapper jar is included for zero-setup execution
+!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 
