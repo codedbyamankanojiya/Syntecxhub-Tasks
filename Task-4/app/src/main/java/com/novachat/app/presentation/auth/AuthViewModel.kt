@@ -21,7 +21,8 @@ data class AuthUiState(
     val isSignUpMode: Boolean = false,
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val successMessage: String? = null
 )
 
 /**
@@ -37,6 +38,12 @@ class AuthViewModel @Inject constructor(
         isAuthenticated = repository.isAuthenticated()
     ))
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    fun resetState() {
+        _uiState.value = AuthUiState(
+            isAuthenticated = repository.isAuthenticated()
+        )
+    }
 
     fun onEmailChanged(email: String) {
         _uiState.update { it.copy(email = email) }
@@ -56,6 +63,37 @@ class AuthViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    fun clearSuccess() {
+        _uiState.update { it.copy(successMessage = null) }
+    }
+
+    fun sendPasswordReset(email: String, onResult: (Result<Unit>) -> Unit = {}) {
+        val targetEmail = email.trim()
+        if (targetEmail.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Please enter your email address") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
+            repository.sendPasswordResetEmail(targetEmail)
+                .onSuccess {
+                    _uiState.update { s ->
+                        s.copy(
+                            isLoading = false,
+                            successMessage = "Password reset link sent to $targetEmail. Check your inbox."
+                        )
+                    }
+                    onResult(Result.success(Unit))
+                }
+                .onFailure { err ->
+                    _uiState.update { s ->
+                        s.copy(isLoading = false, errorMessage = err.localizedMessage ?: "Failed to send reset email")
+                    }
+                    onResult(Result.failure(err))
+                }
+        }
     }
 
     fun signIn() {

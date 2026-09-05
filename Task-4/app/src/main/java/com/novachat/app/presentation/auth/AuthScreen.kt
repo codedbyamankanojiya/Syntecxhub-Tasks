@@ -83,6 +83,10 @@ fun AuthScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    LaunchedEffect(Unit) {
+        viewModel.resetState()
+    }
+
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated) onAuthSuccess()
     }
@@ -94,6 +98,80 @@ fun AuthScreen(
                 viewModel.clearError()
             }
         }
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { msg ->
+            scope.launch {
+                snackbarHostState.showSnackbar(msg)
+                viewModel.clearSuccess()
+            }
+        }
+    }
+
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+
+    if (showForgotPasswordDialog) {
+        var resetEmail by remember { mutableStateOf(uiState.email) }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showForgotPasswordDialog = false },
+            title = {
+                Text(
+                    text = "Reset Password",
+                    style = NovaChatTypography.TitleMedium,
+                    color = NovaChatColors.TextPrimary
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Enter your registered email address and we'll send you a password reset link.",
+                        style = NovaChatTypography.BodyMedium,
+                        color = NovaChatColors.TextSecondary
+                    )
+                    OutlinedTextField(
+                        value = resetEmail,
+                        onValueChange = { resetEmail = it },
+                        label = { Text("Email Address") },
+                        placeholder = { Text("ayush.sharma@example.com") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NovaChatColors.Primary,
+                            unfocusedBorderColor = NovaChatColors.Divider,
+                            focusedTextColor = NovaChatColors.TextPrimary,
+                            unfocusedTextColor = NovaChatColors.TextPrimary,
+                            cursorColor = NovaChatColors.Primary
+                        ),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Done
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showForgotPasswordDialog = false
+                        viewModel.sendPasswordReset(resetEmail)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NovaChatColors.Primary),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = resetEmail.isNotBlank()
+                ) {
+                    Text("Send Reset Link", color = NovaChatColors.TextOnPrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgotPasswordDialog = false }) {
+                    Text("Cancel", color = NovaChatColors.TextSecondary)
+                }
+            },
+            containerColor = NovaChatColors.Surface,
+            shape = RoundedCornerShape(20.dp)
+        )
     }
 
     Box(
@@ -157,7 +235,7 @@ fun AuthScreen(
                 onSignIn = viewModel::signIn,
                 onSignUp = viewModel::signUp,
                 onToggleMode = viewModel::toggleSignUpMode,
-                onGuestSignIn = viewModel::signInAnonymously
+                onForgotPassword = { showForgotPasswordDialog = true }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -187,7 +265,7 @@ private fun AuthCard(
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
     onToggleMode: () -> Unit,
-    onGuestSignIn: () -> Unit
+    onForgotPassword: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
     var passwordVisible by remember { mutableStateOf(false) }
@@ -206,28 +284,63 @@ private fun AuthCard(
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            NcTextField(
+            OutlinedTextField(
                 value = uiState.displayName,
                 onValueChange = onDisplayNameChanged,
-                label = "Display Name",
+                label = { Text("Display Name") },
+                placeholder = { Text("e.g. Ayush Sharma") },
                 leadingIcon = {
-                    Icon(Icons.Default.Person, contentDescription = null, tint = NovaChatColors.Primary)
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = NovaChatColors.TextSecondary
+                    )
                 },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = NovaChatColors.Primary,
+                    unfocusedBorderColor = NovaChatColors.Divider,
+                    focusedLabelColor = NovaChatColors.Primary,
+                    cursorColor = NovaChatColors.Primary,
+                    focusedTextColor = NovaChatColors.TextPrimary,
+                    unfocusedTextColor = NovaChatColors.TextPrimary
+                ),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next
+                ),
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
                 )
             )
         }
 
-        // ── Email ──────────────────────────────────────────────────────────────
-        NcTextField(
+        // ── Email Field ────────────────────────────────────────────────────────
+        OutlinedTextField(
             value = uiState.email,
             onValueChange = onEmailChanged,
-            label = "Email Address",
+            label = { Text("Email Address") },
+            placeholder = { Text("ayush.sharma@example.com") },
             leadingIcon = {
-                Icon(Icons.Default.Email, contentDescription = null, tint = NovaChatColors.Primary)
+                Icon(
+                    imageVector = Icons.Default.Email,
+                    contentDescription = null,
+                    tint = NovaChatColors.TextSecondary
+                )
             },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = NovaChatColors.Primary,
+                unfocusedBorderColor = NovaChatColors.Divider,
+                focusedLabelColor = NovaChatColors.Primary,
+                cursorColor = NovaChatColors.Primary,
+                focusedTextColor = NovaChatColors.TextPrimary,
+                unfocusedTextColor = NovaChatColors.TextPrimary
+            ),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
@@ -237,19 +350,35 @@ private fun AuthCard(
             )
         )
 
-        // ── Password ───────────────────────────────────────────────────────────
-        NcTextField(
+        // ── Password Field ─────────────────────────────────────────────────────
+        OutlinedTextField(
             value = uiState.password,
             onValueChange = onPasswordChanged,
-            label = "Password",
+            label = { Text("Password") },
+            placeholder = { Text("At least 6 characters") },
             leadingIcon = {
-                Icon(Icons.Default.Lock, contentDescription = null, tint = NovaChatColors.Primary)
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = NovaChatColors.TextSecondary
+                )
             },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = NovaChatColors.Primary,
+                unfocusedBorderColor = NovaChatColors.Divider,
+                focusedLabelColor = NovaChatColors.Primary,
+                cursorColor = NovaChatColors.Primary,
+                focusedTextColor = NovaChatColors.TextPrimary,
+                unfocusedTextColor = NovaChatColors.TextPrimary
+            ),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = "Toggle password",
+                        contentDescription = if (passwordVisible) "Hide password" else "Show password",
                         tint = NovaChatColors.TextSecondary
                     )
                 }
@@ -267,7 +396,28 @@ private fun AuthCard(
             )
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        // ── Forgot Password Button (Sign-in only) ──────────────────────────────
+        if (!uiState.isSignUpMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 0.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    onClick = onForgotPassword,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        text = "Forgot Password?",
+                        color = NovaChatColors.Primary,
+                        style = NovaChatTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
+            }
+        } else {
+            Spacer(modifier = Modifier.height(4.dp))
+        }
 
         // ── Primary Action Button ──────────────────────────────────────────────
         Button(
@@ -315,41 +465,6 @@ private fun AuthCard(
                     style = NovaChatTypography.TitleMedium
                 )
             }
-        }
-
-        // ── Divider ────────────────────────────────────────────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            HorizontalDivider(modifier = Modifier.weight(1f), color = NovaChatColors.Divider)
-            Text(
-                text = "or",
-                color = NovaChatColors.TextSecondary,
-                style = NovaChatTypography.LabelMedium
-            )
-            HorizontalDivider(modifier = Modifier.weight(1f), color = NovaChatColors.Divider)
-        }
-
-        // ── Guest Sign-In ──────────────────────────────────────────────────────
-        Button(
-            onClick = onGuestSignIn,
-            enabled = !uiState.isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = NovaChatColors.SurfaceVariant,
-                disabledContainerColor = NovaChatColors.SurfaceVariant.copy(alpha = 0.5f)
-            ),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(
-                text = "Continue as Guest",
-                color = NovaChatColors.TextPrimary,
-                style = NovaChatTypography.TitleMedium.copy(fontWeight = FontWeight.Medium)
-            )
         }
     }
 }
