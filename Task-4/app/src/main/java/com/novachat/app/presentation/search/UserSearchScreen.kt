@@ -84,7 +84,7 @@ fun UserSearchScreen(
                         value = uiState.query,
                         onValueChange = viewModel::onQueryChanged,
                         placeholder = {
-                            Text("Search users...", color = NovaChatColors.TextSecondary, style = NovaChatTypography.BodyLarge)
+                            Text("Search users (e.g. Ayush)...", color = NovaChatColors.TextSecondary, style = NovaChatTypography.BodyLarge)
                         },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = NovaChatColors.InputBackground,
