@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
@@ -17,6 +18,7 @@ data class ProfileUiState(
     val user: User? = null,
     val isLoading: Boolean = true,
     val isUpdating: Boolean = false,
+    val isSignedOut: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null
 )
@@ -36,9 +38,14 @@ class ProfileViewModel @Inject constructor(
     private fun observeUser() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            repository.observeCurrentUser().collect { user ->
-                _uiState.update { it.copy(user = user, isLoading = false) }
-            }
+            repository.observeCurrentUser()
+                .catch { err ->
+                    android.util.Log.w("ProfileViewModel", "observeCurrentUser error: ${err.message}")
+                    _uiState.update { it.copy(user = null, isLoading = false) }
+                }
+                .collect { user ->
+                    _uiState.update { it.copy(user = user, isLoading = false) }
+                }
         }
     }
 
@@ -157,9 +164,78 @@ class ProfileViewModel @Inject constructor(
     }
 
 
+    fun changePassword(currentPassword: String, newPassword: String, onComplete: () -> Unit = {}) {
+        if (currentPassword.isBlank() || newPassword.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "All password fields are required") }
+            return
+        }
+        if (newPassword.length < 6) {
+            _uiState.update { it.copy(errorMessage = "New password must be at least 6 characters") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdating = true, errorMessage = null, successMessage = null) }
+            repository.changePassword(currentPassword, newPassword)
+                .onSuccess {
+                    _uiState.update { it.copy(isUpdating = false, successMessage = "Password changed successfully") }
+                    onComplete()
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isUpdating = false, errorMessage = err.localizedMessage ?: "Failed to change password") }
+                }
+        }
+    }
+
+    fun changeEmail(newEmail: String, currentPassword: String, onComplete: () -> Unit = {}) {
+        val targetEmail = newEmail.trim()
+        if (targetEmail.isBlank() || currentPassword.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Email and current password are required") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdating = true, errorMessage = null, successMessage = null) }
+            repository.changeEmail(targetEmail, currentPassword)
+                .onSuccess {
+                    _uiState.update { state ->
+                        state.copy(
+                            isUpdating = false,
+                            successMessage = "Email updated successfully",
+                            user = state.user?.copy(email = targetEmail)
+                        )
+                    }
+                    onComplete()
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isUpdating = false, errorMessage = err.localizedMessage ?: "Failed to change email") }
+                }
+        }
+    }
+
     fun signOut() {
         viewModelScope.launch {
-            repository.signOut()
+            _uiState.update { it.copy(isLoading = true) }
+            runCatching { repository.signOut() }
+            _uiState.update { it.copy(isLoading = false, user = null, isSignedOut = true) }
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdating = true, errorMessage = null, successMessage = null) }
+            val result = repository.deleteAccount()
+            result.onSuccess {
+                _uiState.update { it.copy(isUpdating = false, user = null, isSignedOut = true) }
+            }.onFailure { err ->
+                runCatching { repository.signOut() }
+                _uiState.update { 
+                    it.copy(
+                        isUpdating = false, 
+                        user = null, 
+                        isSignedOut = true, 
+                        errorMessage = err.localizedMessage ?: "Failed to delete account"
+                    ) 
+                }
+            }
         }
     }
 
