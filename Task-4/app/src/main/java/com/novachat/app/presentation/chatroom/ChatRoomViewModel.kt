@@ -151,6 +151,7 @@ class ChatRoomViewModel @Inject constructor(
                             scrollToBottom = true
                         )
                     }
+                    markRead()
                 }
         }
     }
@@ -191,6 +192,7 @@ class ChatRoomViewModel @Inject constructor(
     private fun markRead() {
         viewModelScope.launch {
             repository.markMessagesAsRead(chatId)
+            com.novachat.app.presentation.ui.util.NotificationHelper.cancelChatNotification(context, chatId)
         }
     }
 
@@ -215,6 +217,11 @@ class ChatRoomViewModel @Inject constructor(
     // ─── Send Text ────────────────────────────────────────────────────────────
 
     fun sendText() {
+        val isDeleted = otherUser.value?.isDeleted == true ||
+                        otherUser.value?.displayName == "Deleted User" ||
+                        otherUserNameState.value == "Deleted User"
+        if (isDeleted) return
+
         val currentState = _uiState.value as? ChatRoomUiState.Success ?: return
         val text = currentState.inputText.trim()
         if (text.isBlank()) return
@@ -269,20 +276,31 @@ class ChatRoomViewModel @Inject constructor(
         val outFile = File(context.cacheDir, "voice_${System.currentTimeMillis()}.m4a")
         recordingFile = outFile
 
-        mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MediaRecorder(context)
-        } else {
-            @Suppress("DEPRECATION")
-            MediaRecorder()
-        }.apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setAudioSamplingRate(44100)
-            setAudioEncodingBitRate(128_000)
-            setOutputFile(outFile.absolutePath)
-            prepare()
-            start()
+        try {
+            mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(context)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaRecorder()
+            }.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioSamplingRate(44100)
+                setAudioEncodingBitRate(128_000)
+                setOutputFile(outFile.absolutePath)
+                prepare()
+                start()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ChatRoomViewModel", "Failed to start audio recording", e)
+            try { mediaRecorder?.release() } catch (_: Exception) {}
+            mediaRecorder = null
+            recordingFile = null
+            viewModelScope.launch {
+                _events.send(ChatRoomUiEvent.ShowSnackbar("Cannot start recording: ${e.localizedMessage ?: "Audio error"}"))
+            }
+            return
         }
 
         _uiState.update { state ->

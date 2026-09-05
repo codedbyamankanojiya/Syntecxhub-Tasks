@@ -43,13 +43,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.material.icons.filled.SentimentSatisfiedAlt
+import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -57,11 +55,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,24 +74,26 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.novachat.app.domain.model.Message
 import com.novachat.app.domain.model.MessageType
-import com.novachat.app.presentation.ui.component.AttachmentBottomSheet
 import com.novachat.app.presentation.ui.component.UserProfileBottomSheet
 import com.novachat.app.presentation.ui.component.VoiceNoteWaveform
 import com.novachat.app.presentation.ui.shape.chatBubbleShape
 import com.novachat.app.presentation.ui.theme.NovaChatColors
 import com.novachat.app.presentation.ui.theme.NovaChatDimens
 import com.novachat.app.presentation.ui.theme.NovaChatTypography
+import com.novachat.app.presentation.ui.util.NotificationHelper
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -110,6 +111,7 @@ fun ChatRoomScreen(
     onNavigateBack: () -> Unit,
     viewModel: ChatRoomViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val playingMessageId by viewModel.playingMessageId.collectAsStateWithLifecycle()
@@ -120,9 +122,18 @@ fun ChatRoomScreen(
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var showAttachmentSheet by remember { mutableStateOf(false) }
     var showProfileSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
+
+    // ── Active Chat Tracker & Notification Clear ────────────────────────────────
+    DisposableEffect(viewModel.chatId) {
+        NotificationHelper.activeChatId = viewModel.chatId
+        NotificationHelper.cancelChatNotification(context, viewModel.chatId)
+        onDispose {
+            if (NotificationHelper.activeChatId == viewModel.chatId) {
+                NotificationHelper.activeChatId = null
+            }
+        }
+    }
 
     // ── One-shot event handler ──────────────────────────────────────────────────
     LaunchedEffect(Unit) {
@@ -131,9 +142,7 @@ fun ChatRoomScreen(
                 is ChatRoomUiEvent.ShowSnackbar ->
                     snackbarHostState.showSnackbar(event.message)
                 ChatRoomUiEvent.NavigateBack -> onNavigateBack()
-                ChatRoomUiEvent.OpenAttachmentSheet -> showAttachmentSheet = true
-                ChatRoomUiEvent.OpenGalleryPicker -> { /* Launch gallery picker */ }
-                ChatRoomUiEvent.OpenCamera -> { /* Launch camera */ }
+                else -> {}
             }
         }
     }
@@ -160,14 +169,21 @@ fun ChatRoomScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Top Bar ─────────────────────────────────────────────────────────
             val successState = uiState as? ChatRoomUiState.Success
+            val isOtherUserDeleted = otherUser?.isDeleted == true ||
+                                     otherUser?.displayName == "Deleted User" ||
+                                     otherUserName == "Deleted User"
+            val effectiveName = if (isOtherUserDeleted) "Deleted User" else (otherUser?.displayName ?: otherUserName)
+            val effectiveAvatar = if (isOtherUserDeleted) null else (otherUser?.photoUrl ?: otherUserAvatar)
+
             ChatRoomTopBar(
-                name = otherUser?.displayName ?: otherUserName,
-                avatarUrl = otherUser?.photoUrl ?: otherUserAvatar,
-                isTyping = successState?.isTyping ?: false,
-                isOnline = otherUser?.isOnline ?: (successState?.otherUserOnline ?: false),
+                name = effectiveName,
+                avatarUrl = effectiveAvatar,
+                isTyping = if (isOtherUserDeleted) false else (successState?.isTyping ?: false),
+                isOnline = if (isOtherUserDeleted) false else (otherUser?.isOnline ?: (successState?.otherUserOnline ?: false)),
                 lastSeen = otherUser?.lastSeen ?: (successState?.otherUserLastSeen ?: 0L),
+                isDeleted = isOtherUserDeleted,
                 onBack = onNavigateBack,
-                onProfileClick = { showProfileSheet = true }
+                onProfileClick = { if (!isOtherUserDeleted) showProfileSheet = true }
             )
 
             // ── Message Feed ─────────────────────────────────────────────────────
@@ -180,10 +196,11 @@ fun ChatRoomScreen(
                     }
                     is ChatRoomUiState.Success -> {
                         if (state.messages.isEmpty()) {
-                            EmptyMessagesPlaceholder(name = otherUserName)
+                            EmptyMessagesPlaceholder(name = effectiveName)
                         } else {
                             MessageFeed(
                                 messages = state.messages,
+                                otherUserName = effectiveName,
                                 listState = listState,
                                 playingMessageId = playingMessageId,
                                 playbackState = playbackState,
@@ -207,18 +224,43 @@ fun ChatRoomScreen(
                 }
             }
 
-            // ── Input Bar ────────────────────────────────────────────────────────
-            ChatInputBar(
-                inputText = successState?.inputText ?: "",
-                isRecording = successState?.isRecording ?: false,
-                recordingDurationMs = successState?.recordingDurationMs ?: 0L,
-                onTextChanged = viewModel::onInputTextChanged,
-                onSend = viewModel::sendText,
-                onAttachment = viewModel::onAttachmentClicked,
-                onStartRecord = viewModel::startRecording,
-                onStopRecord = viewModel::stopAndSendRecording,
-                onCancelRecord = viewModel::cancelRecording
-            )
+            // ── Input Bar / Disabled Account Banner ──────────────────────────────
+            if (isOtherUserDeleted) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = NovaChatColors.SurfaceVariant
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Block,
+                            contentDescription = null,
+                            tint = NovaChatColors.TextSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "This account has been deleted. Chat is disabled.",
+                            style = NovaChatTypography.BodyMedium,
+                            color = NovaChatColors.TextSecondary
+                        )
+                    }
+                }
+            } else {
+                ChatInputBar(
+                    inputText = successState?.inputText ?: "",
+                    onTextChanged = viewModel::onInputTextChanged,
+                    onSend = viewModel::sendText
+                )
+            }
         }
 
         // ── Snackbar ──────────────────────────────────────────────────────────────
@@ -243,20 +285,6 @@ fun ChatRoomScreen(
                 onStartChat = { showProfileSheet = false }
             )
         }
-    }
-
-    // ── Attachment Sheet ──────────────────────────────────────────────────────────
-    if (showAttachmentSheet) {
-        AttachmentBottomSheet(
-            sheetState = sheetState,
-            onDismiss = { showAttachmentSheet = false },
-            onGallery = { viewModel.onGallerySelected(); showAttachmentSheet = false },
-            onCamera = { viewModel.onCameraSelected(); showAttachmentSheet = false },
-            onAudio = { showAttachmentSheet = false },
-            onFile = { showAttachmentSheet = false },
-            onLocation = { showAttachmentSheet = false },
-            onPoll = { showAttachmentSheet = false }
-        )
     }
 }
 
@@ -296,6 +324,7 @@ private fun ChatRoomTopBar(
     isTyping: Boolean,
     isOnline: Boolean,
     lastSeen: Long,
+    isDeleted: Boolean = false,
     onBack: () -> Unit,
     onProfileClick: () -> Unit
 ) {
@@ -317,14 +346,31 @@ private fun ChatRoomTopBar(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onProfileClick)
+                .then(
+                    if (!isDeleted) Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onProfileClick)
+                    else Modifier
+                )
                 .padding(vertical = 4.dp, horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Mini avatar with presence dot
             Box(modifier = Modifier.size(44.dp)) {
-                if (!avatarUrl.isNullOrEmpty()) {
+                if (isDeleted) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(NovaChatColors.SurfaceVariant)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PersonOff,
+                            contentDescription = "Deleted User",
+                            tint = NovaChatColors.TextSecondary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                } else if (!avatarUrl.isNullOrEmpty()) {
                     SubcomposeAsyncImage(
                         model = avatarUrl,
                         contentDescription = "$name avatar",
@@ -364,7 +410,7 @@ private fun ChatRoomTopBar(
                     }
                 }
                 // Presence dot
-                if (isOnline) {
+                if (isOnline && !isDeleted) {
                     Box(
                         modifier = Modifier
                             .size(14.dp)
@@ -388,19 +434,27 @@ private fun ChatRoomTopBar(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                AnimatedContent(
-                    targetState = isTyping,
-                    transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
-                    label = "typing_status"
-                ) { typing ->
-                    if (typing) {
-                        TypingIndicator()
-                    } else {
-                        Text(
-                            text = formatLastSeen(isOnline, lastSeen),
-                            color = if (isOnline) NovaChatColors.Online else NovaChatColors.TextSecondary,
-                            style = NovaChatTypography.BodySmall
-                        )
+                if (isDeleted) {
+                    Text(
+                        text = "Account Deleted",
+                        color = NovaChatColors.TextSecondary,
+                        style = NovaChatTypography.BodySmall
+                    )
+                } else {
+                    AnimatedContent(
+                        targetState = isTyping,
+                        transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
+                        label = "typing_status"
+                    ) { typing ->
+                        if (typing) {
+                            TypingIndicator()
+                        } else {
+                            Text(
+                                text = formatLastSeen(isOnline, lastSeen),
+                                color = if (isOnline) NovaChatColors.Online else NovaChatColors.TextSecondary,
+                                style = NovaChatTypography.BodySmall
+                            )
+                        }
                     }
                 }
             }
@@ -445,6 +499,7 @@ private fun TypingIndicator() {
 @Composable
 private fun MessageFeed(
     messages: List<Message>,
+    otherUserName: String,
     listState: androidx.compose.foundation.lazy.LazyListState,
     playingMessageId: String?,
     playbackState: Map<String, Float>,
@@ -496,6 +551,7 @@ private fun MessageFeed(
 
                 MessageBubble(
                     message = message,
+                    otherUserName = otherUserName,
                     isFirstInCluster = isFirst,
                     isLastInCluster = isLast,
                     isPlaying = playingMessageId == message.id,
@@ -536,6 +592,7 @@ private fun DateChip(label: String) {
 @Composable
 private fun MessageBubble(
     message: Message,
+    otherUserName: String,
     isFirstInCluster: Boolean,
     isLastInCluster: Boolean,
     isPlaying: Boolean,
@@ -569,14 +626,17 @@ private fun MessageBubble(
                 .padding(
                     start = 10.dp,
                     end = 10.dp,
-                    top = if (isFirstInCluster && !isOutgoing && message.senderName.isNotEmpty()) 6.dp else 8.dp,
+                    top = if (isFirstInCluster && !isOutgoing) 6.dp else 8.dp,
                     bottom = 6.dp
                 )
         ) {
             // Sender name (incoming only, first in cluster)
-            if (!isOutgoing && isFirstInCluster && message.senderName.isNotEmpty()) {
+            if (!isOutgoing && isFirstInCluster) {
+                val displayName = otherUserName.takeIf { it.isNotBlank() && it != "User" }
+                    ?: message.senderName.takeIf { it.isNotBlank() }
+                    ?: "User"
                 Text(
-                    text = message.senderName,
+                    text = displayName,
                     color = NovaChatColors.Primary,
                     style = NovaChatTypography.LabelSmall,
                     fontWeight = FontWeight.SemiBold
@@ -677,11 +737,21 @@ private fun MessageMeta(message: Message) {
             style = NovaChatTypography.LabelSmall
         )
         if (message.isSentByMe) {
+            val tickIcon = if (message.isRead || message.isDelivered) Icons.Default.DoneAll else Icons.Default.Check
+            val tickColor = if (message.isRead) {
+                Color(0xFF34B7F1) // Turns blue when read
+            } else {
+                Color.White.copy(alpha = 0.85f) // White when not seen
+            }
             Icon(
-                imageVector = if (message.isRead) Icons.Default.DoneAll else Icons.Default.Check,
-                contentDescription = if (message.isRead) "Read" else "Sent",
-                tint = if (message.isRead) NovaChatColors.Online else metaColor,
-                modifier = Modifier.size(12.dp)
+                imageVector = tickIcon,
+                contentDescription = when {
+                    message.isRead -> "Read"
+                    message.isDelivered -> "Delivered"
+                    else -> "Sent"
+                },
+                tint = tickColor,
+                modifier = Modifier.size(13.dp)
             )
         }
     }
@@ -692,53 +762,27 @@ private fun MessageMeta(message: Message) {
 @Composable
 private fun ChatInputBar(
     inputText: String,
-    isRecording: Boolean,
-    recordingDurationMs: Long,
     onTextChanged: (String) -> Unit,
-    onSend: () -> Unit,
-    onAttachment: () -> Unit,
-    onStartRecord: () -> Unit,
-    onStopRecord: () -> Unit,
-    onCancelRecord: () -> Unit
+    onSend: () -> Unit
 ) {
-    val showSendButton = inputText.isNotBlank()
+    val canSend = inputText.isNotBlank()
 
-    Column(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .background(NovaChatColors.Surface)
             .navigationBarsPadding()
-            .imePadding()
+            .imePadding(),
+        color = NovaChatColors.Surface,
+        shadowElevation = 4.dp
     ) {
-        // ── Recording indicator ───────────────────────────────────────────────────
-        AnimatedVisibility(visible = isRecording) {
-            RecordingOverlay(
-                durationMs = recordingDurationMs,
-                onCancel = onCancelRecord
-            )
-        }
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // ── Emoji Button ────────────────────────────────────────────────────
-            IconButton(
-                onClick = { /* Emoji picker */ },
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    Icons.Default.SentimentSatisfiedAlt,
-                    contentDescription = "Emoji",
-                    tint = NovaChatColors.TextSecondary,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            // ── Text Field ──────────────────────────────────────────────────────
+            // Text Field
             TextField(
                 value = inputText,
                 onValueChange = onTextChanged,
@@ -762,163 +806,24 @@ private fun ChatInputBar(
                 modifier = Modifier.weight(1f)
             )
 
-            // ── Paperclip ───────────────────────────────────────────────────────
-            AnimatedVisibility(
-                visible = !showSendButton && !isRecording,
-                enter = expandHorizontally(),
-                exit = shrinkHorizontally()
-            ) {
-                IconButton(
-                    onClick = onAttachment,
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Attach",
-                        tint = NovaChatColors.TextSecondary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-
-            // ── Send / Mic FAB ──────────────────────────────────────────────────
-            MorphingSendMicFab(
-                showSend = showSendButton,
-                isRecording = isRecording,
-                onSend = onSend,
-                onStartRecord = onStartRecord,
-                onStopRecord = onStopRecord
-            )
-        }
-    }
-}
-
-@Composable
-private fun MorphingSendMicFab(
-    showSend: Boolean,
-    isRecording: Boolean,
-    onSend: () -> Unit,
-    onStartRecord: () -> Unit,
-    onStopRecord: () -> Unit
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "record_pulse")
-    val recordScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "record_scale"
-    )
-
-    val fabColor by animateColorAsState(
-        targetValue = when {
-            isRecording -> NovaChatColors.Accent
-            else -> NovaChatColors.Primary
-        },
-        label = "fab_color"
-    )
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(44.dp)
-            .scale(if (isRecording) recordScale else 1f)
-            .clip(CircleShape)
-            .background(fabColor)
-    ) {
-        AnimatedContent(
-            targetState = showSend,
-            transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
-            label = "send_mic_morph"
-        ) { isSend ->
-            if (isSend) {
-                IconButton(onClick = onSend) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send",
-                        tint = NovaChatColors.TextOnPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            } else {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
-                                    onStartRecord()
-                                    tryAwaitRelease()
-                                    onStopRecord()
-                                }
-                            )
-                        }
-                ) {
-                    Icon(
-                        imageVector = if (isRecording) Icons.Default.MicOff else Icons.Default.Mic,
-                        contentDescription = if (isRecording) "Stop recording" else "Record voice",
-                        tint = NovaChatColors.TextOnPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecordingOverlay(
-    durationMs: Long,
-    onCancel: () -> Unit
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "rec_dot")
-    val dotAlpha by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dot_alpha"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(NovaChatColors.Surface)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(
+            // Send Button
+            IconButton(
+                onClick = onSend,
+                enabled = canSend,
                 modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(NovaChatColors.Accent.copy(alpha = dotAlpha))
-            )
-            val totalSeconds = (durationMs / 1000).toInt()
-            Text(
-                text = "%d:%02d".format(totalSeconds / 60, totalSeconds % 60),
-                color = NovaChatColors.TextPrimary,
-                style = NovaChatTypography.BodyMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(text = "Recording...", color = NovaChatColors.TextSecondary, style = NovaChatTypography.BodySmall)
-        }
-        // Fixed: Use Close icon instead of MicOff for cancel
-        IconButton(onClick = onCancel) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Cancel recording",
-                tint = NovaChatColors.Accent
-            )
+                    .size(44.dp)
+                    .background(
+                        color = if (canSend) NovaChatColors.Primary else NovaChatColors.Primary.copy(alpha = 0.35f),
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Send message",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

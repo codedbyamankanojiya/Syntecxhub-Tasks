@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -122,7 +123,11 @@ fun ChatListScreen(
                                 ChatListItem(
                                     chat = chat,
                                     currentUserId = uiState.currentUserId,
-                                    onAvatarClick = { selectedChatForProfile = chat },
+                                    onAvatarClick = { 
+                                        if (chat.otherUserName != "Deleted User") {
+                                            selectedChatForProfile = chat 
+                                        }
+                                    },
                                     onClick = { onChatClicked(chat) }
                                 )
                             }
@@ -208,11 +213,12 @@ private fun ChatListItem(
     onAvatarClick: () -> Unit,
     onClick: () -> Unit
 ) {
+    val hasUnread = chat.unreadCount > 0
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .background(NovaChatColors.Surface)
+            .background(if (hasUnread) NovaChatColors.Primary.copy(alpha = 0.05f) else NovaChatColors.Surface)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -220,6 +226,7 @@ private fun ChatListItem(
             avatarUrl = chat.otherUserAvatar,
             displayName = chat.otherUserName,
             isOnline = chat.otherUserOnline,
+            hasUnread = hasUnread,
             onAvatarClick = onAvatarClick
         )
 
@@ -231,18 +238,33 @@ private fun ChatListItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = chat.otherUserName,
-                    color = NovaChatColors.TextPrimary,
-                    style = NovaChatTypography.TitleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f, fill = false)
-                )
+                ) {
+                    Text(
+                        text = chat.otherUserName,
+                        color = NovaChatColors.TextPrimary,
+                        style = if (hasUnread) NovaChatTypography.TitleMedium.copy(fontWeight = FontWeight.Bold)
+                                else NovaChatTypography.TitleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (hasUnread) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(NovaChatColors.Unread)
+                        )
+                    }
+                }
                 Text(
                     text = formatTimestamp(chat.lastMessageTime),
-                    color = if (chat.unreadCount > 0) NovaChatColors.Primary else NovaChatColors.TextSecondary,
-                    style = NovaChatTypography.LabelSmall
+                    color = if (hasUnread) NovaChatColors.Primary else NovaChatColors.TextSecondary,
+                    style = if (hasUnread) NovaChatTypography.LabelSmall.copy(fontWeight = FontWeight.SemiBold)
+                            else NovaChatTypography.LabelSmall
                 )
             }
             Spacer(modifier = Modifier.height(2.dp))
@@ -259,14 +281,14 @@ private fun ChatListItem(
                 }
                 Text(
                     text = preview,
-                    color = if (chat.unreadCount > 0) NovaChatColors.TextPrimary else NovaChatColors.TextSecondary,
-                    style = if (chat.unreadCount > 0) NovaChatTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold)
+                    color = if (hasUnread) NovaChatColors.TextPrimary else NovaChatColors.TextSecondary,
+                    style = if (hasUnread) NovaChatTypography.BodySmall.copy(fontWeight = FontWeight.SemiBold)
                             else NovaChatTypography.BodySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                if (chat.unreadCount > 0) {
+                if (hasUnread) {
                     Spacer(modifier = Modifier.width(8.dp))
                     UnreadBadge(count = chat.unreadCount)
                 }
@@ -280,15 +302,32 @@ private fun AvatarWithPresence(
     avatarUrl: String?,
     displayName: String,
     isOnline: Boolean,
+    hasUnread: Boolean = false,
     onAvatarClick: () -> Unit
 ) {
+    val isDeleted = displayName == "Deleted User"
     Box(
         modifier = Modifier
             .size(52.dp)
-            .clickable(onClick = onAvatarClick)
+            .then(if (!isDeleted) Modifier.clickable(onClick = onAvatarClick) else Modifier)
     ) {
         // Avatar
-        if (!avatarUrl.isNullOrEmpty()) {
+        if (isDeleted) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(NovaChatColors.SurfaceVariant)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PersonOff,
+                    contentDescription = "Deleted User",
+                    tint = NovaChatColors.TextSecondary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        } else if (!avatarUrl.isNullOrEmpty()) {
             SubcomposeAsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(avatarUrl)
@@ -346,8 +385,23 @@ private fun AvatarWithPresence(
             }
         }
 
+        // Unread message blip dot — top right
+        if (hasUnread && !isDeleted) {
+            Box(
+                modifier = Modifier
+                    .size(15.dp)
+                    .clip(CircleShape)
+                    .background(NovaChatColors.Surface)
+                    .padding(2.5.dp)
+                    .clip(CircleShape)
+                    .background(NovaChatColors.Unread)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 1.dp, y = (-1).dp)
+            )
+        }
+
         // Online presence dot — white border ring + green fill
-        if (isOnline) {
+        if (isOnline && !isDeleted) {
             Box(
                 modifier = Modifier
                     .size(16.dp)
