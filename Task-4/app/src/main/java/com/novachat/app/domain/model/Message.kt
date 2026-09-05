@@ -34,6 +34,7 @@ data class Message(
     val type: MessageType = MessageType.TEXT,
     val timestamp: Long = System.currentTimeMillis(),
     val isRead: Boolean = false,
+    val isDelivered: Boolean = false,
     val isSentByMe: Boolean = false,
     val voiceAmplitudes: List<Float> = emptyList(),
     val voiceDurationMs: Long = 0L,

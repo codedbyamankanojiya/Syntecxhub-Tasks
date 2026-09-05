@@ -23,5 +23,6 @@ data class User(
     val notificationsEnabled: Boolean = true,
     val lastSeenVisible: Boolean = true,
     val aboutVisible: Boolean = true,
-    val isAnonymous: Boolean = false
+    val isAnonymous: Boolean = false,
+    val isDeleted: Boolean = false
 )
