@@ -15,8 +15,8 @@ import com.novachat.app.data.local.entity.MessageEntity
  */
 @Database(
     entities = [MessageEntity::class],
-    version = 1,
-    exportSchema = true
+    version = 2,
+    exportSchema = false
 )
 @TypeConverters(RoomTypeConverters::class)
 abstract class NovaChatDatabase : RoomDatabase() {
