@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -23,8 +25,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.novachat.app.domain.model.Chat
 import com.novachat.app.presentation.chatlist.ChatListScreen
+import com.novachat.app.presentation.chatlist.ChatListViewModel
 import com.novachat.app.presentation.profile.ProfileScreen
 import com.novachat.app.presentation.ui.theme.NovaChatColors
 import com.novachat.app.presentation.ui.theme.NovaChatTypography
@@ -44,9 +51,12 @@ enum class MainTab {
 fun MainScreen(
     onChatClicked: (Chat) -> Unit,
     onNewChat: () -> Unit,
-    onSignedOut: () -> Unit
+    onSignedOut: () -> Unit,
+    chatListViewModel: ChatListViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableStateOf(MainTab.CHATS) }
+    val chatListState by chatListViewModel.uiState.collectAsStateWithLifecycle()
+    val totalUnread = chatListState.chats.sumOf { it.unreadCount }
 
     Scaffold(
         // Don't apply top window insets here; child screens manage their own status bar padding
@@ -60,10 +70,27 @@ fun MainScreen(
                     selected = selectedTab == MainTab.CHATS,
                     onClick = { selectedTab = MainTab.CHATS },
                     icon = {
-                        Icon(
-                            Icons.Default.Chat,
-                            contentDescription = "Chats"
-                        )
+                        BadgedBox(
+                            badge = {
+                                if (totalUnread > 0) {
+                                    Badge(
+                                        containerColor = NovaChatColors.Unread,
+                                        contentColor = Color.White
+                                    ) {
+                                        Text(
+                                            text = if (totalUnread > 99) "99+" else totalUnread.toString(),
+                                            style = NovaChatTypography.LabelSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Chat,
+                                contentDescription = "Chats"
+                            )
+                        }
                     },
                     label = {
                         Text(

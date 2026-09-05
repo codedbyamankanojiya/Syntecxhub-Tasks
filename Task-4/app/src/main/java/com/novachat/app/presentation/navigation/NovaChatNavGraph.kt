@@ -24,11 +24,12 @@ sealed class NavDestination(val route: String) {
     data object Auth : NavDestination("auth")
     data object Main : NavDestination("main")
     data object UserSearch : NavDestination("user_search")
-    data object ChatRoom : NavDestination("chat_room/{chatId}/{otherUserId}") {
+    data object ChatRoom : NavDestination("chat_room/{chatId}/{otherUserId}?otherUserName={otherUserName}") {
         fun buildRoute(
             chatId: String,
-            otherUserId: String
-        ): String = "chat_room/$chatId/$otherUserId"
+            otherUserId: String,
+            otherUserName: String = ""
+        ): String = "chat_room/$chatId/$otherUserId?otherUserName=${android.net.Uri.encode(otherUserName)}"
     }
 }
 
@@ -41,9 +42,20 @@ sealed class NavDestination(val route: String) {
 @Composable
 fun NovaChatNavGraph(
     isAuthenticated: Boolean = false,
-    startDestination: String = NavDestination.Splash.route
+    startDestination: String = NavDestination.Splash.route,
+    pendingChatRoute: String? = null,
+    onChatRouteHandled: () -> Unit = {}
 ) {
     val navController = rememberNavController()
+
+    androidx.compose.runtime.LaunchedEffect(pendingChatRoute, isAuthenticated) {
+        if (!pendingChatRoute.isNullOrEmpty() && isAuthenticated) {
+            navController.navigate(pendingChatRoute) {
+                launchSingleTop = true
+            }
+            onChatRouteHandled()
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -86,7 +98,8 @@ fun NovaChatNavGraph(
                     navController.navigate(
                         NavDestination.ChatRoom.buildRoute(
                             chatId = chat.id,
-                            otherUserId = otherUserId
+                            otherUserId = otherUserId,
+                            otherUserName = chat.otherUserName
                         )
                     )
                 },
@@ -95,7 +108,10 @@ fun NovaChatNavGraph(
                 },
                 onSignedOut = {
                     navController.navigate(NavDestination.Auth.route) {
-                        popUpTo(NavDestination.Main.route) { inclusive = true }
+                        popUpTo(NavDestination.Main.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -105,11 +121,12 @@ fun NovaChatNavGraph(
         composable(NavDestination.UserSearch.route) {
             UserSearchScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onChatReady = { chatId, otherUserId, _, _ ->
+                onChatReady = { chatId, otherUserId, otherUserName, _ ->
                     navController.navigate(
                         NavDestination.ChatRoom.buildRoute(
                             chatId = chatId,
-                            otherUserId = otherUserId
+                            otherUserId = otherUserId,
+                            otherUserName = otherUserName
                         )
                     ) {
                         // Pop UserSearch so back from ChatRoom goes to Main
@@ -124,7 +141,11 @@ fun NovaChatNavGraph(
             route = NavDestination.ChatRoom.route,
             arguments = listOf(
                 navArgument("chatId") { type = NavType.StringType },
-                navArgument("otherUserId") { type = NavType.StringType }
+                navArgument("otherUserId") { type = NavType.StringType },
+                navArgument("otherUserName") {
+                    type = NavType.StringType
+                    defaultValue = "User"
+                }
             )
         ) {
             ChatRoomScreen(
